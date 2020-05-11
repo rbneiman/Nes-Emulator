@@ -6,6 +6,9 @@
 #define EMULATORTEST_MYMEMORY_H
 #include <stdint.h>
 
+void memoryInit();
 int8_t readMemory8(uint16_t address);
+void writeMemory8(uint16_t address, uint8_t arg);
 int16_t readMemory16(uint16_t address);
+
 #endif //EMULATORTEST_MYMEMORY_H
