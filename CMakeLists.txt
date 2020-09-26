@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
-project(EmulatorTest C)
+project(EmulatorTest)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 14)
+set(SFML_DIR "SFML-2.5.1/lib/cmake/SFML")
 
-add_executable(EmulatorTest main.c cpu.c cpu.h utilities.c MyMemory.c MyMemory.h cpu.h)
+find_package(SFML 2 COMPONENTS graphics audio REQUIRED)
+add_executable(EmulatorTest main.cpp cpu.cpp cpu.h utilities.cpp MyMemory.cpp MyMemory.h cpu.h ppu.cpp ppu.h screen.cpp screen.h)
+target_link_libraries(EmulatorTest sfml-graphics sfml-audio)
