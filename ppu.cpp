@@ -1,7 +1,7 @@
 
 #include "ppu.h"
 #include <cstdint>
-#include "MyMemory.h"
+#include "memory.h"
 #include "screen.h"
 
 #define PPUCTRL   getMemory8(0x2000u)
