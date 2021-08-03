@@ -5,19 +5,21 @@
 #include <SFML/Window.hpp>
 #include "screen.h"
 #include <iostream>
-
+#include "rom.h"
 
 int main() {
     sf::err().rdbuf(nullptr);
 
-    InitCPU();
+    RomFile test(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)");
+
+    CPU6502 cpu{};
     InitScreen();
     InitPpu();
-    cycleCPU(100);
+    cpu.cycle(100);
     pixelSet(1,1,sf::Color::Blue);
     while (window->isOpen())
     {
-        sf::Event event;
+        sf::Event event{};
         while (window->pollEvent(event))
         {
             // "close requested" event: we close the window
