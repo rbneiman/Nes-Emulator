@@ -35,10 +35,10 @@ CPUMemory::CPUMemory(CPU6502* cpu): cpu(cpu){
     addr = 0;
 
     //TEST
-    const uint8_t prog[] = {0xa9, 0x01, 0x8d, 0x00, 0x02, 0xa9, 0x05, 0x8d, 0x01, 0x02, 0xa9, 0x08, 0x8d, 0x02, 0x2, 0xCC, 0x0, 0x02};
-    for(uint16_t i = 0; i < sizeof(prog)/ sizeof(uint8_t); i++){
-       memory[i+0x600] = prog[i];
-    }
+//    const uint8_t prog[] = {0xa9, 0x01, 0x8d, 0x00, 0x02, 0xa9, 0x05, 0x8d, 0x01, 0x02, 0xa9, 0x08, 0x8d, 0x02, 0x2, 0xCC, 0x0, 0x02};
+//    for(uint16_t i = 0; i < sizeof(prog)/ sizeof(uint8_t); i++){
+//       memory[i+0x600] = prog[i];
+//    }
     //
 }
 
@@ -62,8 +62,12 @@ uint8_t CPUMemory::readMemory8(uint16_t address){
 }
 
 void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
-    if(address<0x2000){ address %= 0x800u;} //mirror
-    else if(address<0x4000){ address = address % 0x8u + 0x2000u;}
+    if(address<0x2000){
+        address %= 0x800u;
+    } //mirror
+    else if(address<0x4000){
+        address = address % 0x8u + 0x2000u;
+    }
 
     if(address==0x2005){ //PPUSCROLL
         if(scrollTemp==0){
@@ -108,10 +112,35 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
 //    return &memory[address];
 //}
 
-uint16_t CPUMemory::readMemory16(uint16_t address){
+uint16_t CPUMemory::readMemory16(uint16_t address, bool zPage){
     if(address<0x2000){ address %= 0x800u;} //mirror
     else if(address<0x4000){ address = address % 0x8u + 0x2000u;}
     else if(address > 0x4019 && rom != nullptr){return rom->read16(address);}
-    uint16_t* out = (uint16_t *) &(memory[address]);
-    return *out;
+    uint16_t out;
+    if(zPage && address == 0x00FF)
+        out = (memory[0]<<8) + memory[address];
+    else
+        out = *((uint16_t *) &(memory[address]));
+    return out;
+}
+
+void CPUMemory::setRom(RomFile *rom) {
+    CPUMemory::rom = rom;
+}
+
+void CPUMemory::printMemoryDebug(int start, int end){
+    printf("\n      ");
+    for(int i = 0; i<0x10; i++){
+        printf("%02x ", i);
+    }
+    printf("\n\n%04x  ", start-start%16);
+
+    for(int i=start-start%16; i<=end; i++){
+        if(i%0x10==0 && i!=start-start%16){
+            printf("\n%04x  ", i);
+        }
+        printf("%02x ", readMemory8(i));
+    }
+    printf("\n");
+    fflush(stdout);
 }

@@ -99,12 +99,13 @@ uint8_t RomFile::read8(uint16_t address){
 uint16_t RomFile::read16(uint16_t address){
     switch (mapperNum) {
         case 0:
-            if(inRange(address, 0x6000, 0x7fff)){
-
-            }else if(inRange(address, 0x8000, 0xbfff)){
+            if(inRange(address, 0x8000, 0xbfff)){
                 return *((uint16_t*) (prg_rom.data() + address - 0x8000));
             }else if(inRange(address, 0xC000, 0xFFFF)){
-
+                if(prg_rom.size() > 0x4000)
+                    return *((uint16_t*) (prg_rom.data() + address - 0x8000));
+                else
+                    return *((uint16_t*) (prg_rom.data() + address - 0xC000));
             }else{
                 std::cerr << "Bad ROM address: " << address << std::endl;
                 return 0;

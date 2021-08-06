@@ -25,7 +25,11 @@ public:
 
     uint8_t readMemory8(uint16_t address);
     void writeMemory8(uint16_t address, uint8_t arg);
-    uint16_t readMemory16(uint16_t address);
+    uint16_t readMemory16(uint16_t address, bool zPage = false);
+
+    void setRom(RomFile *rom);
+
+    void printMemoryDebug(int start, int end);
 };
 
 

@@ -5,6 +5,7 @@
 
 #include "memory.h"
 #include "rom.h"
+#include "utilities.h"
 //#define PUSH(arg) (writeMemory8(sp--,arg))
 //#define POP(arg)  (readMemory8(sp++))
 
@@ -19,12 +20,20 @@ private:
     uint8_t sp;
     uint16_t pc;
 
+    DebugLogFile debugLogFile;
+    int debugNumCycles;
+
     uint32_t cpuTime;
     CPUMemory* memory;
 public:
     CPU6502();
     void inc(int units);
     void cycle(int numClocks);
+    void setRom(RomFile *rom);
+
+    void printMemoryDebug(int start, int end);
+
+    void printStatus() const;
 };
 
 
