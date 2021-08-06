@@ -20,12 +20,13 @@
     while(true){
         cpu.cycle(100);
         count += 1;
+#ifdef DEBUG_CPU
         if(count % 100 == 0 && count != 0){
-//            cpu.printStatus();
             cpu.printMemoryDebug(0x00, 0xff);
             count = 0;
             fflush(stdout);
         }
+#endif
     }
 
 }

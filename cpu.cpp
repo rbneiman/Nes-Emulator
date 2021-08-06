@@ -25,11 +25,11 @@
 #define PUSH(arg) (memory->writeMemory8(0x100 + (sp--),arg))
 #define POP(arg)  (memory->readMemory8(0x100 + (++sp)))
 
-#define pageCross(arg1,arg2) ((arg1/256) != (arg2/256))
+#define pageCross(arg1,arg2) ((arg1&0xFF00) != (arg2&0xFF00))
 
 #define cpuInc(arg) cpuTime += 15 * arg
 
-
+//#define DEBUG
 
 //uint32_t cpuTime;
 
@@ -59,7 +59,7 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 
-void CPU6502::cycle(int runTo) {
+void CPU6502::cycle(uint32_t runTo) {
     int32_t checkV = 0;
     uint32_t checkVUnsigned = 0;
     uint16_t arg0 = 0;
@@ -69,14 +69,16 @@ void CPU6502::cycle(int runTo) {
     bool isOverflow;
     runTo += cpuTime;
     while (runTo > cpuTime) {
-        bool debugCheck = debugLogFile.checkLine(debugNumCycles++, pc, acc, xindex, yindex, status, sp);
         uint8_t opcode = memory->readMemory8(pc);
+#ifdef DEBUG_CPU
+        bool debugCheck = debugLogFile.checkLine(debugNumCycles, pc, acc, xindex, yindex, status, sp);
+        bool timingCheck = debugLogFile.checkTiming(debugNumCycles++, cpuTime/15 + 7);
         this->printStatus();
-        if(!debugCheck) fflush(stdout);
+        if(!debugCheck || !timingCheck) fflush(stdout);
+#endif
         switch (opcode) {                          //TODO add undocumented opcodes
             case 0x00: //BRK implied/immediate
                 status |= 0x10u;
-//                PUSH(pc);
                 arg1 = pc + 2;
                 PUSH(((arg1 & 0xFF00)>>8));
                 PUSH((arg1 & 0x00FF));
@@ -87,15 +89,13 @@ void CPU6502::cycle(int runTo) {
                 setB(1);
                 cpuInc(7);
                 break;
-
-            case 0x01:; //ORA indirect x
+            case 0x01: //ORA indirect x
                 arg0 = memory->readMemory8(pc + 1);
                 arg1 = memory->readMemory16(zeropage(arg0 + xindex), true);
                 a = memory->readMemory8(arg1);
                 acc |= a;
                 setN(acc);
                 setZ(acc);
-                cpuTime += 15;
                 cpuInc(6);
                 pc += 2;
                 break;
@@ -171,14 +171,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if (((int8_t) status) > 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
                 break;
             case 0x11: //ORA indirect y
                 arg0 = memory->readMemory8(pc + 1);
@@ -187,7 +187,7 @@ void CPU6502::cycle(int runTo) {
                 acc |= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
                 }
                 cpuInc(5);
@@ -225,7 +225,7 @@ void CPU6502::cycle(int runTo) {
                 acc |= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
                 }
                 cpuInc(4);
@@ -237,7 +237,7 @@ void CPU6502::cycle(int runTo) {
                 acc |= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
                 }
                 cpuInc(4);
@@ -308,7 +308,7 @@ void CPU6502::cycle(int runTo) {
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x28: //PLP implied
@@ -376,14 +376,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if (((int8_t) status) < 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0x31: //AND indirect y
@@ -393,11 +393,11 @@ void CPU6502::cycle(int runTo) {
                 acc &= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
 
                 }
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x35: //AND zeropage x
@@ -435,9 +435,8 @@ void CPU6502::cycle(int runTo) {
                 acc &= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(4);
 
@@ -449,7 +448,7 @@ void CPU6502::cycle(int runTo) {
                 acc &= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -508,7 +507,7 @@ void CPU6502::cycle(int runTo) {
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x48: //PHA implied
@@ -568,14 +567,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x40u) == 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0x51: //EOR indirect y
@@ -585,11 +584,11 @@ void CPU6502::cycle(int runTo) {
                 acc ^= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
 
                 }
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x55: //EOR zeropage x
@@ -626,9 +625,8 @@ void CPU6502::cycle(int runTo) {
                 acc ^= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(4);
 
@@ -640,7 +638,7 @@ void CPU6502::cycle(int runTo) {
                 acc ^= a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -710,7 +708,7 @@ void CPU6502::cycle(int runTo) {
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x68: //PLA implied
@@ -753,7 +751,7 @@ void CPU6502::cycle(int runTo) {
                     pc = (memory->readMemory8(arg0&0xff00) << 8) + memory->readMemory8(arg0);
                 else
                     pc = memory->readMemory16(arg0);
-
+                cpuInc(5);
                 break;
             case 0x6D: //ADC absolute
                 arg0 = memory->readMemory16(pc + 1);
@@ -789,14 +787,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x40u) != 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0x71: //ADC indirect y
@@ -812,11 +810,10 @@ void CPU6502::cycle(int runTo) {
                 setC(acc < ((uint32_t) checkV));
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
-
                 }
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0x75: //ADC zeropage x
@@ -831,11 +828,8 @@ void CPU6502::cycle(int runTo) {
                 setC(acc < ((uint32_t) checkV));
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, zpageInd(arg0, xindex))) {
-                    cpuInc(1);
 
-                }
-
+                cpuInc(4);
                 pc += 2;
                 break;
             case 0x76: //ROR zeropage x
@@ -869,9 +863,8 @@ void CPU6502::cycle(int runTo) {
                 setC(acc < ((uint32_t) checkV));
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(4);
 
@@ -889,7 +882,7 @@ void CPU6502::cycle(int runTo) {
                 setC(acc < ((uint32_t) checkV));
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -982,14 +975,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x1) == 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0x91: //STA indirect y
@@ -1033,6 +1026,7 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 memory->writeMemory8(arg0 + yindex, acc);
 
+                cpuInc(5);
                 pc += 3;
                 break;
             case 0x9A: //TXS Implied
@@ -1044,7 +1038,7 @@ void CPU6502::cycle(int runTo) {
             case 0x9D: //STA absolute x
                 arg0 = memory->readMemory16(pc + 1);
                 memory->writeMemory8(arg0 + xindex, acc);
-
+                cpuInc(5);
                 pc += 3;
                 break;
 
@@ -1167,14 +1161,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x1) != 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0xB1: //LDA indirect y
@@ -1184,11 +1178,10 @@ void CPU6502::cycle(int runTo) {
                 acc = a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
-
                 }
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0xB4: //LDY zeropage x
@@ -1233,9 +1226,8 @@ void CPU6502::cycle(int runTo) {
                 acc = a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(4);
 
@@ -1255,9 +1247,8 @@ void CPU6502::cycle(int runTo) {
                 yindex = a;
                 setZ(yindex);
                 setN(yindex);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(4);
 
@@ -1269,7 +1260,7 @@ void CPU6502::cycle(int runTo) {
                 acc = a;
                 setZ(acc);
                 setN(acc);
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -1283,7 +1274,7 @@ void CPU6502::cycle(int runTo) {
                 xindex = a;
                 setZ(yindex);
                 setN(yindex);
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
 
                 }
@@ -1339,7 +1330,7 @@ void CPU6502::cycle(int runTo) {
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0xC8: //INY implied
@@ -1403,14 +1394,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x2) == 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0xD1: //CMP indirect y
@@ -1420,11 +1411,10 @@ void CPU6502::cycle(int runTo) {
                 setC(acc >= a);
                 setZ(acc - a);
                 setN((acc - a));
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
-
                 }
-
+                cpuInc(5);
                 pc += 2;
                 break;
             case 0xD5: //CMP zeropage x
@@ -1460,7 +1450,7 @@ void CPU6502::cycle(int runTo) {
                 setC(acc >= a);
                 setZ(acc - a);
                 setN((acc - a));
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
 
                 }
@@ -1474,7 +1464,7 @@ void CPU6502::cycle(int runTo) {
                 setC(acc >= a);
                 setZ(acc - a);
                 setN((acc - a));
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -1561,7 +1551,7 @@ void CPU6502::cycle(int runTo) {
                 xindex++;
                 setZ(xindex);
                 setN((xindex));
-                cpuInc(5);
+                cpuInc(2);
 
                 pc += 1;
                 break;
@@ -1628,14 +1618,14 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 if ((status & 0x2u) != 0){
                     arg1 = pc + arg0;
-                    if (arg1 > 0xFF) {
-                        cpuInc(1);
+                    if ((arg1&0xff00) != (pc&0xff00)) {
+                        cpuInc(2);
                     } //new page penalty
                     pc = (pc&0xFF00) | (arg1&0x00FF);
                     cpuInc(1);
                 }
 
-                cpuInc(3);
+                cpuInc(2);
 
                 break;
             case 0xF1: //SBC indirect y
@@ -1651,9 +1641,8 @@ void CPU6502::cycle(int runTo) {
                 setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
-                if (pageCross(pc, indirInd(arg0))) {
+                if (pageCross(arg1, arg1 + yindex)) {
                     cpuInc(1);
-
                 }
                 cpuInc(5);
 
@@ -1704,7 +1693,7 @@ void CPU6502::cycle(int runTo) {
                 setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
-                if (pageCross(pc, arg0 + yindex)) {
+                if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
 
                 }
@@ -1724,7 +1713,7 @@ void CPU6502::cycle(int runTo) {
                 setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
-                if (pageCross(pc, arg0 + xindex)) {
+                if (pageCross(arg0, arg0 + xindex)) {
                     cpuInc(1);
 
                 }
@@ -1744,7 +1733,7 @@ void CPU6502::cycle(int runTo) {
                 pc += 3;
                 break;
             default:
-//                printf("Unknown opcode!\n");
+                printf("Unknown opcode!\n");
                 break;
 
         }
@@ -1758,6 +1747,6 @@ void CPU6502::setRom(RomFile *rom) {
 }
 
 void CPU6502::printStatus() const{
-    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x\n", pc, acc, xindex, yindex, status, sp);
+    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%d\n", pc, acc, xindex, yindex, status, sp, cpuTime/15 + 7);
 }
 

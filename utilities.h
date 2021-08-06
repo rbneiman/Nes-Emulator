@@ -39,11 +39,14 @@ private:
     std::vector<uint8_t> yIndexes;
     std::vector<uint8_t> statuses;
     std::vector<uint8_t> sps;
+    std::vector<uint32_t> times;
 
     void parseLine(const std::string& line);
 public:
     explicit DebugLogFile(const std::string& logString);
     bool checkLine(int num, uint16_t pc, uint8_t acc,  uint8_t xIndex,  uint8_t yIndex,  uint8_t status, uint8_t sp);
+
+    bool checkTiming(int num, uint32_t cycles);
 };
 
 int checkBit(uint8_t a, uint8_t bit);

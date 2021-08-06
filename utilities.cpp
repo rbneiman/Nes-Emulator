@@ -77,6 +77,7 @@ bool isOverflowSubtract(int8_t a, int8_t b, int8_t result){
 
 
 void DebugLogFile::parseLine(const std::string &line) {
+    uint32_t cycles;
     uint16_t pc;
     uint8_t acc, xIndex, yIndex, status, sp;
     pc = std::stoi(line, nullptr, 16);
@@ -85,12 +86,14 @@ void DebugLogFile::parseLine(const std::string &line) {
     yIndex = std::stoi(line.c_str() + 60, nullptr, 16);
     status = std::stoi(line.c_str() + 65, nullptr, 16);
     sp = std::stoi(line.c_str() + 71, nullptr, 16);
+    cycles = std::stoi(line.c_str() + 90, nullptr, 10);
     pcs.emplace_back(pc);
     accs.emplace_back(acc);
     xIndexes.emplace_back(xIndex);
     yIndexes.emplace_back(yIndex);
     statuses.emplace_back(status);
     sps.emplace_back(sp);
+    times.emplace_back(cycles);
 }
 
 DebugLogFile::DebugLogFile(const std::string &filePath) {
@@ -114,3 +117,6 @@ bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, 
         sps[num] == sp;
 }
 
+bool DebugLogFile::checkTiming(int num, uint32_t cycles){
+    return times[num] == cycles;
+}

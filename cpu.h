@@ -6,8 +6,8 @@
 #include "memory.h"
 #include "rom.h"
 #include "utilities.h"
-//#define PUSH(arg) (writeMemory8(sp--,arg))
-//#define POP(arg)  (readMemory8(sp++))
+
+#define DEBUG_CPU
 
 class CPUMemory;
 
@@ -28,7 +28,7 @@ private:
 public:
     CPU6502();
     void inc(int units);
-    void cycle(int numClocks);
+    void cycle(uint32_t numClocks);
     void setRom(RomFile *rom);
 
     void printMemoryDebug(int start, int end);
