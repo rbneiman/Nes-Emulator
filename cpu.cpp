@@ -61,6 +61,7 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 void CPU6502::cycle(int runTo) {
     int32_t checkV = 0;
+    uint32_t checkVUnsigned = 0;
     uint16_t arg0 = 0;
     uint16_t arg1 = 0;
     uint8_t a = 0;
@@ -72,7 +73,7 @@ void CPU6502::cycle(int runTo) {
         uint8_t opcode = memory->readMemory8(pc);
         this->printStatus();
         if(!debugCheck) fflush(stdout);
-        switch (opcode) {                          //TODO debug cases
+        switch (opcode) {                          //TODO add undocumented opcodes
             case 0x00: //BRK implied/immediate
                 status |= 0x10u;
 //                PUSH(pc);
@@ -110,8 +111,9 @@ void CPU6502::cycle(int runTo) {
             case 0x06: //ASL zeropage
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = ((int8_t) a) << 1;
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
@@ -134,8 +136,10 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 break;
             case 0x0A: //ASL Acc/Implied
-                setC((acc & 0x80) >> 7);
+
+                a = acc;
                 acc = ((int8_t) acc) << 1;
+                setC((a & 0x80) >> 7);
                 setZ(acc);
                 setN(acc);
                 cpuInc(2);
@@ -153,8 +157,9 @@ void CPU6502::cycle(int runTo) {
             case 0x0E: //ASL absolute
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = ((int8_t) a) << 1;
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0, a);
@@ -177,8 +182,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x11: //ORA indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                a = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                a = memory->readMemory8(arg1 + yindex);
                 acc |= a;
                 setZ(acc);
                 setN(acc);
@@ -200,8 +205,9 @@ void CPU6502::cycle(int runTo) {
             case 0x16: //ASL zeropage x
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(zpageInd(arg0, xindex));
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = ((int8_t) a) << 1;
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zpageInd(arg0, xindex), a);
@@ -239,10 +245,11 @@ void CPU6502::cycle(int runTo) {
                 pc += 3;
                 break;
             case 0x1E: //ASL absolute x
-                arg0 = memory->readMemory8(pc + 1);
+                arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + xindex);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = ((int8_t) a) << 1;
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0 + xindex, a);
@@ -276,7 +283,7 @@ void CPU6502::cycle(int runTo) {
                 a = memory->readMemory8(arg0);
                 arg0 = a & acc;
                 setZ(arg0);
-                setV(((a & 0b01000000)>>6));
+                setV((a & 0x40)>>6);
                 setN(a);
                 cpuInc(3);
 
@@ -295,8 +302,9 @@ void CPU6502::cycle(int runTo) {
             case 0x26: //ROL zeropage
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = (a << 1) | ((a & 0x80u) >> 7);
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
@@ -320,8 +328,9 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 break;
             case 0x2A: //ROL acc/Implied
-                setC((acc & 0x80u) >> 7);
+                a = acc;
                 acc = (acc << 1) | ((acc & 0x80u) >> 7);
+                setC((a & 0x80u) >> 7);
                 setZ(acc);
                 setN(acc);
                 cpuInc(2);
@@ -333,8 +342,8 @@ void CPU6502::cycle(int runTo) {
                 a = memory->readMemory8(arg0);
                 arg0 = a & acc;
                 setZ(arg0);
-                setV(a & 0xBEu);
-                setV(a);
+                setV((a & 0x40u)>>6);
+                setN(a);
                 cpuInc(4);
 
                 pc += 3;
@@ -352,8 +361,9 @@ void CPU6502::cycle(int runTo) {
             case 0x2E: //ROL absolute
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = (a << 1) | ((a & 0x80u) >> 7);
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0, a);
@@ -378,8 +388,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x31: //AND indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                a = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                a = memory->readMemory8(arg1 + yindex);
                 acc &= a;
                 setZ(acc);
                 setN(acc);
@@ -403,11 +413,13 @@ void CPU6502::cycle(int runTo) {
             case 0x36: //ROL zeropage x
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(zpageInd(arg0, xindex));
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = (a << 1) | ((a & 0x80u) >> 7);
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 cpuInc(6);
+                memory->writeMemory8(zpageInd(arg0, xindex), a);
 
                 pc += 2;
                 break;
@@ -448,8 +460,9 @@ void CPU6502::cycle(int runTo) {
             case 0x3E: //ROL absolute x
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + xindex);
-                setC((a & 0x80u) >> 7);
+                b = a;
                 a = (a << 1) | ((a & 0x80u) >> 7);
+                setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0 + xindex, a);
@@ -567,8 +580,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x51: //EOR indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                a = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                a = memory->readMemory8(arg1 + yindex);
                 acc ^= a;
                 setZ(acc);
                 setN(acc);
@@ -688,10 +701,12 @@ void CPU6502::cycle(int runTo) {
                 pc += 2;
                 break;
             case 0x66: //ROR zeropage
+
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC(a & (0x1u));
+                b = a;
                 a = (a >> 1) | ((status & 0x1u) << 7);
+                setC(b & (0x1u));
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zeropage(arg0), a);
@@ -733,7 +748,11 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x6C: //JMP indirect
                 arg0 = memory->readMemory16(pc + 1);
-                pc = memory->readMemory16(arg0);
+                //add bug in the 6502 causing memory to fetch msb from wrong location on page boundary
+                if((arg0&0x00ff) == 0xff)
+                    pc = (memory->readMemory8(arg0&0xff00) << 8) + memory->readMemory8(arg0);
+                else
+                    pc = memory->readMemory16(arg0);
 
                 break;
             case 0x6D: //ADC absolute
@@ -755,8 +774,9 @@ void CPU6502::cycle(int runTo) {
             case 0x6E: //ROR absolute
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0);
-                setC(a & (0x1u));
+                b = a;
                 a = (a >> 1) | ((status & 0x1u) << 7);
+                setC(b & (0x1u));
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0, a);
@@ -781,8 +801,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x71: //ADC indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                b = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                b = memory->readMemory8(arg1 + yindex);
                 a = acc;
                 checkV = a + b + (status & 0x1u);
                 acc = checkV;
@@ -821,8 +841,9 @@ void CPU6502::cycle(int runTo) {
             case 0x76: //ROR zeropage x
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(zpageInd(arg0, xindex));
-                setC(a & (0x1u));
+                b = a;
                 a = (a >> 1) | ((status & 0x1u) << 7);
+                setC(b & (0x1u));
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(zpageInd(arg0, xindex), a);
@@ -879,8 +900,9 @@ void CPU6502::cycle(int runTo) {
             case 0x7E: //ROR absolute x
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + xindex);
-                setC(a & (0x1u));
+                b = a;
                 a = (a >> 1) | ((status & 0x1u) << 7);
+                setC(b & (0x1u));
                 setZ(a);
                 setN(a);
                 memory->writeMemory8(arg0 + xindex, a);
@@ -972,8 +994,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0x91: //STA indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                memory->writeMemory8(arg1 , acc);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                memory->writeMemory8(arg1 + yindex , acc);
                 cpuInc(6);
 
                 pc += 2;
@@ -1157,8 +1179,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0xB1: //LDA indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                a = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                a = memory->readMemory8(arg1 + yindex);
                 acc = a;
                 setZ(acc);
                 setN(acc);
@@ -1258,7 +1280,7 @@ void CPU6502::cycle(int runTo) {
             case 0xBE: //LDX absolute y
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + yindex);
-                yindex = a;
+                xindex = a;
                 setZ(yindex);
                 setN(yindex);
                 if (pageCross(pc, arg0 + yindex)) {
@@ -1393,8 +1415,8 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0xD1: //CMP indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                arg1 = memory->readMemory16(zeropage(arg0 + yindex), true);
-                a = memory->readMemory8(arg1);
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                a = memory->readMemory8(arg1 + yindex);
                 setC(acc >= a);
                 setZ(acc - a);
                 setN((acc - a));
@@ -1486,12 +1508,12 @@ void CPU6502::cycle(int runTo) {
                 arg1 = memory->readMemory16(zeropage(arg0 + xindex), true);
                 b = memory->readMemory8(arg1);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV((checkV > 127) || (checkV < -128));
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 cpuInc(6);
@@ -1512,12 +1534,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory8(pc + 1);
                 b = memory->readMemory8(arg0);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 cpuInc(3);
@@ -1547,12 +1569,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory8(pc + 1);
                 a = acc;
                 b = arg0;
-                checkV = acc - arg0 - 1 + (status & 0x1u);
-                acc = checkV;
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
+                acc = acc - arg0 - 1 + (status & 0x1u);
 
-                isOverflow = isOverflowSubtract(a, b+1-(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 cpuInc(2);
@@ -1578,12 +1600,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 b = memory->readMemory8(arg0);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 cpuInc(4);
@@ -1618,14 +1640,15 @@ void CPU6502::cycle(int runTo) {
                 break;
             case 0xF1: //SBC indirect y
                 arg0 = memory->readMemory8(pc + 1);
-                b = memory->readMemory8(zeropage(arg0 + yindex));
+                arg1 = memory->readMemory16(zeropage(arg0), true);
+                b = memory->readMemory8(arg1 + yindex);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 if (pageCross(pc, indirInd(arg0))) {
@@ -1640,12 +1663,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory8(pc + 1);
                 b = memory->readMemory8(zpageInd(arg0, xindex));
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 cpuInc(4);
@@ -1673,12 +1696,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 b = memory->readMemory8(arg0 + yindex);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 if (pageCross(pc, arg0 + yindex)) {
@@ -1693,12 +1716,12 @@ void CPU6502::cycle(int runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 b = memory->readMemory8(arg0 + xindex);
                 a = acc;
-                checkV = a - b - 1 + (status & 0x1u);
+                checkVUnsigned = (a - b - 1 + (status & 0x1u));
+                checkV =(int) (((int8_t) a) - ((int8_t) b) - 1 + (status & 0x1u));
                 acc = checkV;
 
-                isOverflow = isOverflowSubtract(a, b-1+(status & 0x1u), acc);
-                setV(isOverflow);
-                setC(!(checkV < 0));
+                setV((checkV > ((int8_t) acc)) || (checkV < ((int8_t) acc)));
+                setC( !(((int) checkVUnsigned) < 0));
                 setZ(acc);
                 setN((acc));
                 if (pageCross(pc, arg0 + xindex)) {
