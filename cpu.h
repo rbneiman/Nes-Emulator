@@ -7,7 +7,7 @@
 #include "rom.h"
 #include "utilities.h"
 
-#define DEBUG_CPU
+//#define DEBUG_CPU
 
 class CPUMemory;
 
@@ -26,7 +26,7 @@ private:
     uint32_t cpuTime;
     CPUMemory* memory;
 public:
-    CPU6502();
+    CPU6502(PPU* ppu, RomFile* rom);
     void inc(int units);
     void cycle(uint32_t numClocks);
     void setRom(RomFile *rom);

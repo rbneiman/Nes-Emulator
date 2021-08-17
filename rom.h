@@ -27,6 +27,8 @@ typedef enum{
 
 class RomFile{
 private:
+    std::vector<char> vram;
+
     std::vector<char> trainer;
     std::vector<char> prg_rom;
     std::vector<char> chr_rom;
@@ -50,6 +52,8 @@ public:
 
     uint8_t read8(uint16_t address);
     uint16_t read16(uint16_t address);
+
+    void write8(uint16_t address, uint8_t arg);
 };
 #endif //EMULATORTEST_ROM_H
 

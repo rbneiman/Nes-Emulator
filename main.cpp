@@ -11,20 +11,19 @@
 [[noreturn]] void cpuTask(){
     auto* testRom = new RomFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)");
 
-
-    CPU6502 cpu{};
+    PPU ppu{testRom};
+    CPU6502 cpu{&ppu, testRom};
     cpu.setRom(testRom);
-    InitPpu();
 
     int count = 0;
     while(true){
-        cpu.cycle(100);
+        cpu.cycle(count * 10);
+        ppu.cycle(count * 10);
         count += 1;
 #ifdef DEBUG_CPU
         if(count % 100 == 0 && count != 0){
             cpu.printMemoryDebug(0x00, 0xff);
             count = 0;
-            fflush(stdout);
         }
 #endif
     }
@@ -33,8 +32,6 @@
 
 int main() {
     sf::err().rdbuf(nullptr);
-
-
 
     InitScreen();
 

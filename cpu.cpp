@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 #include "cpu.h"
+#include "ppu.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
@@ -33,8 +34,8 @@
 
 //uint32_t cpuTime;
 
-CPU6502::CPU6502():
-    memory(new CPUMemory(this)),
+CPU6502::CPU6502(PPU* ppu, RomFile* rom):
+    memory(new CPUMemory(this, ppu, rom)),
     debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"){
 
     cpuTime = 0;
@@ -67,8 +68,8 @@ void CPU6502::cycle(uint32_t runTo) {
     uint8_t a = 0;
     uint8_t b = 0;
     bool isOverflow;
-    runTo += cpuTime;
-    while (runTo > cpuTime) {
+//    runTo += cpuTime;
+    while (cpuTime < runTo) {
         uint8_t opcode = memory->readMemory8(pc);
 #ifdef DEBUG_CPU
         bool debugCheck = debugLogFile.checkLine(debugNumCycles, pc, acc, xindex, yindex, status, sp);
@@ -1733,17 +1734,19 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             default:
+#ifdef DEBUG_CPU
                 printf("Unknown opcode!\n");
-                break;
 
+#endif
+                break;
         }
     }
 }
 
 void CPU6502::setRom(RomFile *rom) {
     this->memory->setRom(rom);
-//    this->pc = this->memory->readMemory16(0xFFFC);
-    this->pc = 0xc000;
+    this->pc = this->memory->readMemory16(0xFFFC);
+//    this->pc = 0xc000;
 }
 
 void CPU6502::printStatus() const{

@@ -99,7 +99,11 @@ uint8_t RomFile::read8(uint16_t address){
 uint16_t RomFile::read16(uint16_t address){
     switch (mapperNum) {
         case 0:
-            if(inRange(address, 0x8000, 0xbfff)){
+            if(inRange(address, 0x0000, 0x1fff)){ //CHR_ROM
+                return *((uint16_t*) (chr_rom.data() + address));
+            }else if(inRange(address, 0x2000, 0x2fff)){ //VRAM
+                return *((uint16_t*) (vram.data() + address - 0x2000));
+            }else if(inRange(address, 0x8000, 0xbfff)){
                 return *((uint16_t*) (prg_rom.data() + address - 0x8000));
             }else if(inRange(address, 0xC000, 0xFFFF)){
                 if(prg_rom.size() > 0x4000)
@@ -116,6 +120,23 @@ uint16_t RomFile::read16(uint16_t address){
             break;
     }
 }
+
+
+void RomFile::write8(uint16_t address, uint8_t arg){
+    switch (mapperNum) {
+        case 0:
+            if(inRange(address, 0x2000, 0x2fff)){ //VRAM
+                vram[address - 0x2000] = arg;
+            }else{
+                std::cerr << "Bad ROM write address: " << address << std::endl;
+            }
+            break;
+        default:
+            std::cerr << "Unknown mapper type: " << this->mapperNum << std::endl;
+            break;
+    }
+}
+
 
 
 
