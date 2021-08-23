@@ -67,6 +67,7 @@ void CPU6502::cycle(uint32_t runTo) {
     uint16_t arg1 = 0;
     uint8_t a = 0;
     uint8_t b = 0;
+    int8_t rel = 0;
     bool isOverflow;
 //    runTo += cpuTime;
     while (cpuTime < runTo) {
@@ -168,10 +169,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0x10: //BPL relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if (((int8_t) status) > 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -373,10 +374,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0x30: //BMI relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if (((int8_t) status) < 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -564,10 +565,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0x50: //BVC relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x40u) == 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -784,10 +785,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0x70: //BVS relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x40u) != 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -972,10 +973,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0x90: //BCC relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x1) == 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -1158,10 +1159,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0xB0: //BCS relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x1) != 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -1391,10 +1392,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0xD0: //BNE relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x2) == 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
@@ -1615,10 +1616,10 @@ void CPU6502::cycle(uint32_t runTo) {
                 pc += 3;
                 break;
             case 0xF0: //BEQ relative
-                arg0 = memory->readMemory8(pc + 1);
+                rel = memory->readMemory8(pc + 1);
                 pc += 2;
                 if ((status & 0x2u) != 0){
-                    arg1 = pc + arg0;
+                    arg1 = pc + rel;
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
