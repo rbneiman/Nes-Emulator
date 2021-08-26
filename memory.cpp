@@ -1,6 +1,4 @@
 #include <cstdint>
-#include "ppu.h"
-#include "cpu.h"
 #include "memory.h"
 
 //#define cpuInc(arg) cpuTime += 15 * arg
@@ -17,12 +15,14 @@
 //$2008-$3FFF	$1FF8	Mirrors of $2000-2007 (repeats every 8 bytes)
 //$4000-$4017	$0018	NES APU and I/O registers
 //$4018-$401F	$0008	APU and I/O functionality that is normally disabled. See CPU Test Mode.
-//$4020-$FFFF	$BFE0	Cartridge space: PRG ROM, PRG RAM, and mapper registers (See Note)
+//$4020-$FFFF	$BFE0	Cartridge space: PRG system->rom, PRG RAM, and mapper registers (See Note)
 
 
 //void writeMemory8(uint16_t address, uint8_t arg);
 
-CPUMemory::CPUMemory(CPU6502* cpu, PPU* ppu, RomFile* rom): cpu(cpu), ppu(ppu), rom(rom){
+CPUMemory::CPUMemory(RomFile* rom, PPU* ppu):
+    rom(rom),
+    ppu(ppu){
     for(uint16_t i = 0x4000; i<0x4014; i++){
         memory[i] = 0;
     }
@@ -35,7 +35,7 @@ CPUMemory::CPUMemory(CPU6502* cpu, PPU* ppu, RomFile* rom): cpu(cpu), ppu(ppu), 
 uint8_t CPUMemory::readMemory8(uint16_t address){
     if(address<0x2000){ address %= 0x800u;} //mirror
     else if(address<0x4000){ address = address % 0x8u + 0x2000u;}
-    else if(address > 0x4019 && rom != nullptr){return rom->read16(address);}
+    else if(address > 0x4019){return rom->read16(address);}
 
     switch (address) {
         case 0x2002: //PPUSTATUS
@@ -91,7 +91,7 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
 uint16_t CPUMemory::readMemory16(uint16_t address, bool zPage){
     if(address<0x2000){ address %= 0x800u;} //mirror
     else if(address<0x4000){ address = address % 0x8u + 0x2000u;}
-    else if(address > 0x4019 && rom != nullptr){return rom->read16(address);}
+    else if(address > 0x4019){return rom->read16(address);}
     uint16_t out;
     if(zPage && address == 0x00FF)
         out = (memory[0]<<8) + memory[address];
@@ -115,9 +115,4 @@ void CPUMemory::printMemoryDebug(int start, int end){
     }
     printf("\n");
     fflush(stdout);
-}
-
-void CPUMemory::setRom(RomFile *rom) {
-    this->rom = rom;
-    this->ppu->setRom(rom);
 }

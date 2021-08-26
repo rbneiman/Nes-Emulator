@@ -5,11 +5,10 @@
 #include <string>
 #include <cstring>
 #include <vector>
-#include <sstream>
 #include "utilities.h"
 
 
-int checkBit(uint8_t a,uint8_t bit){ //true if bit 1
+int checkBit(uint8_t a, uint8_t bit){ //true if bit 1
     return (a && (1<<bit)) > 0;
 }
 
@@ -74,7 +73,6 @@ bool isOverflowSubtract(int8_t a, int8_t b, int8_t result){
     bool case2 = (a>0) && (b<0);
     return (case1 && (result>0)) || (case2 && (result<0));
 }
-
 
 void DebugLogFile::parseLine(const std::string &line) {
     uint32_t cycles;

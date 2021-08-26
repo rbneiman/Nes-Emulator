@@ -2,11 +2,12 @@
 
 #ifndef EMULATORTEST_PPU_H
 #define EMULATORTEST_PPU_H
-
-#define VBLANK_TIME 10 //TODO temporary value
-
 #include <cstdint>
+#include "cpu.h"
 #include "rom.h"
+
+class CPU6502;
+class RomFile;
 
 typedef struct{
     uint8_t y;
@@ -18,13 +19,13 @@ typedef struct{
 typedef struct{
     uint8_t nameTable;
     uint8_t attrTable;
-    uint16_t patternTable;
+    uint8_t patternTable[16];
 }tile_t;
 
-void InitPpu();
 
 class PPU{
 private:
+    CPU6502* cpu;
     RomFile* rom;
 
     bool isOddFrame{false};
@@ -86,11 +87,13 @@ private:
     uint8_t nameTableTemp{0};
     uint8_t attrTableTemp{0};
     uint16_t patternTableTemp{0};
-    tile_t tiles[960];
+    tile_t tiles[0x20]{};
+
+    void drawScanline();
 public:
 
 
-    explicit PPU(RomFile* rom);
+    explicit PPU(CPU6502* cpu, RomFile* rom);
 
     void cycle(int numCycles);
 
@@ -115,8 +118,6 @@ public:
     void setPpuData(uint8_t ppuData);
 
     void setOamDma(uint8_t oamDma);
-
-    void setRom(RomFile *rom);
 };
 
 #endif //EMULATORTEST_PPU_H

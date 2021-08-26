@@ -1,33 +1,26 @@
 #include <cstdio>
-#include <cstdint>
-#include "cpu.h"
-#include "ppu.h"
 #include <SFML/Window.hpp>
 #include "screen.h"
-#include <iostream>
-#include "rom.h"
 #include <thread>
+#include "NESSystem.h"
 
 [[noreturn]] void cpuTask(){
-    auto* testRom = new RomFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)");
 
-    PPU ppu{testRom};
-    CPU6502 cpu{&ppu, testRom};
-    cpu.setRom(testRom);
+    NESSystem system{R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)"};
 
     int count = 0;
     while(true){
-        cpu.cycle(count * 10);
-        ppu.cycle(count * 10);
+        system.cpu->cycle(count * 10);
+        system.ppu->cycle(count * 10);
         count += 1;
 #ifdef DEBUG_CPU
-        if(count % 100 == 0 && count != 0){
-            cpu.printMemoryDebug(0x00, 0xff);
-            count = 0;
-        }
+//        if(count % 100 == 0 && count != 0){
+//            cpu.printMemoryDebug(0x00, 0xff);
+//            count = 0;
+//        }
 #endif
     }
-
+    system.cpu->printMemoryDebug(0x00, 0xff);
 }
 
 int main() {

@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstdio>
 #include "cpu.h"
-#include "ppu.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
@@ -34,9 +33,9 @@
 
 //uint32_t cpuTime;
 
-CPU6502::CPU6502(PPU* ppu, RomFile* rom):
-    memory(new CPUMemory(this, ppu, rom)),
-    debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"){
+CPU6502::CPU6502(CPUMemory* memory):
+    debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"), 
+    memory(memory){
 
     cpuTime = 0;
 
@@ -73,10 +72,10 @@ void CPU6502::cycle(uint32_t runTo) {
     while (cpuTime < runTo) {
         uint8_t opcode = memory->readMemory8(pc);
 #ifdef DEBUG_CPU
-        bool debugCheck = debugLogFile.checkLine(debugNumCycles, pc, acc, xindex, yindex, status, sp);
-        bool timingCheck = debugLogFile.checkTiming(debugNumCycles++, cpuTime/15 + 7);
+//        bool debugCheck = debugLogFile.checkLine(debugNumCycles, pc, acc, xindex, yindex, status, sp);
+//        bool timingCheck = debugLogFile.checkTiming(debugNumCycles++, cpuTime/15 + 7);
         this->printStatus();
-        if(!debugCheck || !timingCheck) fflush(stdout);
+//        if(!debugCheck || !timingCheck) fflush(stdout);
 #endif
         switch (opcode) {                          //TODO add undocumented opcodes
             case 0x00: //BRK implied/immediate
@@ -176,7 +175,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -381,7 +380,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -572,7 +571,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -792,7 +791,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -980,7 +979,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -1166,7 +1165,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -1399,7 +1398,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -1623,7 +1622,7 @@ void CPU6502::cycle(uint32_t runTo) {
                     if ((arg1&0xff00) != (pc&0xff00)) {
                         cpuInc(2);
                     } //new page penalty
-                    pc = (pc&0xFF00) | (arg1&0x00FF);
+                    pc = pc + rel;
                     cpuInc(1);
                 }
 
@@ -1744,8 +1743,7 @@ void CPU6502::cycle(uint32_t runTo) {
     }
 }
 
-void CPU6502::setRom(RomFile *rom) {
-    this->memory->setRom(rom);
+void CPU6502::loadRom() {
     this->pc = this->memory->readMemory16(0xFFFC);
 //    this->pc = 0xc000;
 }
@@ -1754,3 +1752,6 @@ void CPU6502::printStatus() const{
     printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%d\n", pc, acc, xindex, yindex, status, sp, cpuTime/15 + 7);
 }
 
+void CPU6502::doNMI(){
+    this->pc = this->memory->readMemory16(0xFFFA);
+}

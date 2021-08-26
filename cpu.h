@@ -3,16 +3,16 @@
 #ifndef EMULATORTEST_CPU_H
 #define EMULATORTEST_CPU_H
 
-#include "memory.h"
-#include "rom.h"
 #include "utilities.h"
+#include "memory.h"
 
-//#define DEBUG_CPU
-
+#define DEBUG_CPU
 class CPUMemory;
 
 class CPU6502{
 private:
+    CPUMemory* memory;
+
     uint8_t acc;
     uint8_t xindex;
     uint8_t yindex;
@@ -24,16 +24,18 @@ private:
     int debugNumCycles;
 
     uint32_t cpuTime;
-    CPUMemory* memory;
 public:
-    CPU6502(PPU* ppu, RomFile* rom);
+    CPU6502(CPUMemory* memory);
     void inc(int units);
     void cycle(uint32_t numClocks);
-    void setRom(RomFile *rom);
 
     void printMemoryDebug(int start, int end);
 
     void printStatus() const;
+
+    void doNMI();
+
+    void loadRom();
 };
 
 

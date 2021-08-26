@@ -1,6 +1,5 @@
 
 #include "screen.h"
-#include <SFML/Graphics.hpp>
 
 void renderThread();
 
@@ -20,10 +19,10 @@ void InitScreen(){
             (*pixels)[i*pixels_width*4+j*4+1].position = sf::Vector2f(j*pixels_size,i*pixels_size + pixels_size);
             (*pixels)[i*pixels_width*4+j*4+2].position = sf::Vector2f(j*pixels_size + pixels_size,i*pixels_size + pixels_size);
             (*pixels)[i*pixels_width*4+j*4+3].position = sf::Vector2f(j*pixels_size + pixels_size,i*pixels_size);
-            (*pixels)[i*pixels_width*4+j*4].color = sf::Color::White;
-            (*pixels)[i*pixels_width*4+j*4+1].color = sf::Color::White;
-            (*pixels)[i*pixels_width*4+j*4+2].color = sf::Color::White;
-            (*pixels)[i*pixels_width*4+j*4+3].color = sf::Color::White;
+            (*pixels)[i*pixels_width*4+j*4].color = sf::Color::Black;
+            (*pixels)[i*pixels_width*4+j*4+1].color = sf::Color::Black;
+            (*pixels)[i*pixels_width*4+j*4+2].color = sf::Color::Black;
+            (*pixels)[i*pixels_width*4+j*4+3].color = sf::Color::Black;
         }
     }
 
@@ -39,6 +38,7 @@ void pixelSet(int x, int y, sf::Color color){
     (*pixels)[y*pixels_width*4+x*4+2].color = color;
     (*pixels)[y*pixels_width*4+x*4+3].color = color;
 }
+
 
 sf::Color pixelGet(int x, int y){
     return (*pixels)[y*pixels_width*4+x*4].color;

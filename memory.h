@@ -2,31 +2,25 @@
 #ifndef EMULATORTEST_MEMORY_H
 #define EMULATORTEST_MEMORY_H
 #include <cstdint>
-#include "cpu.h"
-#include "rom.h"
 #include "ppu.h"
-//#include "cpu.h"
+#include "rom.h"
 
-class CPU6502;
+class PPU;
 
 class CPUMemory{
 private:
-    PPU* ppu;
-    CPU6502* cpu;
     RomFile* rom;
-
+    PPU* ppu;
     uint8_t memory[0xFFFF]{};
 
     uint16_t addr;
 
 public:
-    explicit CPUMemory(CPU6502* cpu, PPU* ppu, RomFile* rom);
+    explicit CPUMemory(RomFile* rom, PPU* ppu);
 
     uint8_t readMemory8(uint16_t address);
     void writeMemory8(uint16_t address, uint8_t arg);
     uint16_t readMemory16(uint16_t address, bool zPage = false);
-
-    void setRom(RomFile *rom);
 
     void printMemoryDebug(int start, int end);
 };

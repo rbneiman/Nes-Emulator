@@ -27,7 +27,7 @@ typedef enum{
 
 class RomFile{
 private:
-    std::vector<char> vram;
+    uint8_t vram[0x2000];
 
     std::vector<char> trainer;
     std::vector<char> prg_rom;

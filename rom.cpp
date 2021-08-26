@@ -6,7 +6,6 @@
 #include <vector>
 #include <cstdint>
 #include "rom.h"
-#include "utilities.h"
 
 //#define MIRROR_HORIZONTAL 0
 //#define MIRROR_VERTICAL 1
@@ -102,7 +101,7 @@ uint16_t RomFile::read16(uint16_t address){
             if(inRange(address, 0x0000, 0x1fff)){ //CHR_ROM
                 return *((uint16_t*) (chr_rom.data() + address));
             }else if(inRange(address, 0x2000, 0x2fff)){ //VRAM
-                return *((uint16_t*) (vram.data() + address - 0x2000));
+                return *((uint16_t*) (vram + address - 0x2000));
             }else if(inRange(address, 0x8000, 0xbfff)){
                 return *((uint16_t*) (prg_rom.data() + address - 0x8000));
             }else if(inRange(address, 0xC000, 0xFFFF)){
@@ -136,6 +135,7 @@ void RomFile::write8(uint16_t address, uint8_t arg){
             break;
     }
 }
+
 
 
 
