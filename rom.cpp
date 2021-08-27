@@ -110,7 +110,7 @@ uint16_t RomFile::read16(uint16_t address){
                 else
                     return *((uint16_t*) (prg_rom.data() + address - 0xC000));
             }else{
-                std::cerr << "Bad ROM address: " << address << std::endl;
+                std::cerr << "Bad ROM address: " << std::hex << address << std::endl;
                 return 0;
             }
             break;

@@ -165,7 +165,7 @@ int attrOffset(int currentTile){
 // four 2bit values, one for each 2x2 quadrant of block, represent palettes
 
 void PPU::cycle(int runTo){
-
+    uint16_t debug_addr;
     //run through scanCycles one at a time
     while(ppuTime < runTo){
         if(scanline < 240){ //0-239 visible lines
@@ -175,16 +175,16 @@ void PPU::cycle(int runTo){
             }else if(scanCycle < 257){ //1-256 tile fetches
                 switch (tileProgress) {
                     case 0:
-                        nameTableTemp = readPPUMemory8(baseNametableAddress + currentTile);
+                        nameTableTemp = readPPUMemory8(baseNametableAddress + 0x20 * (scanline/8) + currentTile);
                         tileProgress++;
-                        scanCycle++;
-                        ppuInc(1);
+                        scanCycle+=2;
+                        ppuInc(2);
                         break;
                     case 1:
                         attrTableTemp = readPPUMemory8(baseNametableAddress + 0x3c0 + attrOffset(currentTile));
                         tileProgress++;
-                        scanCycle++;
-                        ppuInc(1);
+                        scanCycle+=2;
+                        ppuInc(2);
                         break;
                     case 2:
 //                        patternAddr = readPPUMemory8(bgPatternTableAddress + nameTableTemp * 16);
@@ -201,16 +201,48 @@ void PPU::cycle(int runTo){
 
                         currentTile = (currentTile+1) % 0x20;
                         tileProgress = 0;
-                        scanCycle +=2;
-                        ppuInc(2);
+                        scanCycle +=4;
+                        ppuInc(4);
                         break;
                 }
             }else if(scanCycle < 321){ //257-320 next scanline's sprites
                 scanCycle +=1;
                 ppuInc(1);
             }else if(scanCycle < 337){ //321-336 first two tiles next scanline
-                scanCycle +=1;
-                ppuInc(1);
+//                switch (tileProgress) {
+//                    case 0:
+//                        nameTableTemp = readPPUMemory8(baseNametableAddress + 0x20 * scanline/8);
+//                        tileProgress++;
+//                        scanCycle+=2;
+//                        ppuInc(2);
+//                        break;
+//                        case 1:
+//                            attrTableTemp = readPPUMemory8(baseNametableAddress + 0x3c0 + attrOffset(currentTile));
+//                            tileProgress++;
+//                            scanCycle+=2;
+//                            ppuInc(2);
+//                            break;
+//                        case 2:
+//                            //                        patternAddr = readPPUMemory8(bgPatternTableAddress + nameTableTemp * 16);
+//                            //                        patternAddr |= readPPUMemory8(bgPatternTableAddress + nameTableTemp * 16 + 8);
+//                            tiles[currentTile].attrTable = attrTableTemp;
+//                            tiles[currentTile].nameTable = nameTableTemp;
+//
+//                            for(int i=0; i<7; i++ ){
+//                                uint16_t patternAddr = bgPatternTableAddress + nameTableTemp * 16 + i;
+//                                uint16_t patternAddr2 = bgPatternTableAddress + nameTableTemp * 16 + 8 + i;
+//                                tiles[currentTile].patternTable[i] = readPPUMemory8(patternAddr);
+//                                tiles[currentTile].patternTable[i+8] = readPPUMemory8(patternAddr2);
+//                            }
+//
+//                            currentTile = (currentTile+1) % 0x20;
+//                            tileProgress = 0;
+//                            scanCycle +=4;
+//                            ppuInc(4);
+//                            break;
+//                }
+                scanCycle +=2;
+                ppuInc(2);
             }else{ //337-340 useless tile fetches
                 scanCycle +=1;
                 ppuInc(1);
@@ -220,8 +252,9 @@ void PPU::cycle(int runTo){
             ppuInc(1);
         }else if(scanline < 261){ //241-260 vBlank lines
             if(scanline == 241 && scanCycle == 1){
+                if(generateNMI)
+                    cpu->doNMI();
                 ppuStatus |= 0x80;
-                cpu->doNMI();
             }
             scanCycle++;
             ppuInc(1);
@@ -256,6 +289,8 @@ int getQuadrant(uint32_t scanLine, int tileNum){
 
 //draw a single scanline to screen
 void PPU::drawScanline(){
+    if(!this->showBackground) return;
+
     int offY = scanline%8;
     for(int tileNum=0; tileNum<0x20; tileNum++){
         tile_t tile = tiles[tileNum];
@@ -274,8 +309,8 @@ void PPU::drawScanline(){
             upper = CHECK_BIT(drawByte2, i);
             paletteIndex = (upper << 1) | lower;
 //            drawColor = sf::Color(quadrant*50,quadrant*50 + i*5, quadrant*50 + offY*5);
-            drawColor = sf::Color(paletteIndex*50, paletteIndex*50, paletteIndex*50);
-            pixelSet(tileNum*8 + i, scanline, drawColor);
+            drawColor = sf::Color(scanline%8 * 20, paletteIndex*70, (i==0 ? 200 : paletteIndex * 70));
+            pixelSet(tileNum*8 + (7-i), scanline, drawColor);
         }
     }
 
@@ -374,7 +409,10 @@ uint8_t PPU::getPpuData(){
 
 void PPU::setPpuData(uint8_t ppuData) {
     PPU::ppuData = ppuData;
+    writePPUMemory8(ppuAddr, ppuData);
+    ppuAddr += vramAddressIncrement;
     ppuStatus = (ppuStatus & 0xE0) | (ppuData & 0x1F);
+
 }
 
 void PPU::setOamDma(uint8_t oamDma) {

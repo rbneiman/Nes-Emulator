@@ -1,17 +1,21 @@
 #include <cstdio>
 #include <SFML/Window.hpp>
+#include <atomic>
 #include "screen.h"
 #include <thread>
 #include "NESSystem.h"
 
+
+std::atomic<int> controller{0};
 [[noreturn]] void cpuTask(){
 
     NESSystem system{R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)"};
 
     int count = 0;
     while(true){
-        system.cpu->cycle(count * 10);
-        system.ppu->cycle(count * 10);
+        system.cpu->cycle(count * 20);
+        system.ppu->cycle(count * 20);
+        system.memory->writeMemory8(0x4016, controller);
         count += 1;
 #ifdef DEBUG_CPU
 //        if(count % 100 == 0 && count != 0){

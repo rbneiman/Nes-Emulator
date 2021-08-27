@@ -33,7 +33,7 @@ private:
     uint8_t ppuMem[0x4000u]{};
     uint8_t OAM[0x100u]{};
 
-    int currentTile{3};
+    int currentTile{0};
     int tileProgress{0};
 
     uint8_t ppuCtrl{0};

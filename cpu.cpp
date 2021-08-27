@@ -33,9 +33,8 @@
 
 //uint32_t cpuTime;
 
-CPU6502::CPU6502(CPUMemory* memory):
-    debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"), 
-    memory(memory){
+CPU6502::CPU6502():
+    debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"){
 
     cpuTime = 0;
 
@@ -1753,5 +1752,13 @@ void CPU6502::printStatus() const{
 }
 
 void CPU6502::doNMI(){
+
+    PUSH(((pc & 0xFF00)>>8));
+    PUSH((pc & 0x00FF));
+    PUSH(status);
     this->pc = this->memory->readMemory16(0xFFFA);
+}
+
+void CPU6502::setMemory(CPUMemory *memory) {
+    this->memory = memory;
 }

@@ -6,7 +6,7 @@
 #include "utilities.h"
 #include "memory.h"
 
-#define DEBUG_CPU
+//#define DEBUG_CPU
 class CPUMemory;
 
 class CPU6502{
@@ -25,7 +25,7 @@ private:
 
     uint32_t cpuTime;
 public:
-    CPU6502(CPUMemory* memory);
+    CPU6502();
     void inc(int units);
     void cycle(uint32_t numClocks);
 
@@ -36,6 +36,8 @@ public:
     void doNMI();
 
     void loadRom();
+
+    void setMemory(CPUMemory *memory);
 };
 
 
