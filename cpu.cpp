@@ -303,7 +303,7 @@ void CPU6502::cycle(uint32_t runTo) {
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(arg0);
                 b = a;
-                a = (a << 1) | ((a & 0x80u) >> 7);
+                a = (a << 1) | ((status & 0x1));
                 setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
@@ -329,7 +329,7 @@ void CPU6502::cycle(uint32_t runTo) {
                 break;
             case 0x2A: //ROL acc/Implied
                 a = acc;
-                acc = (acc << 1) | ((acc & 0x80u) >> 7);
+                acc = (acc << 1) | (status & 0x1);
                 setC((a & 0x80u) >> 7);
                 setZ(acc);
                 setN(acc);
@@ -362,7 +362,7 @@ void CPU6502::cycle(uint32_t runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0);
                 b = a;
-                a = (a << 1) | ((a & 0x80u) >> 7);
+                a = (a << 1) | (status & 0x1);
                 setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
@@ -414,7 +414,7 @@ void CPU6502::cycle(uint32_t runTo) {
                 arg0 = memory->readMemory8(pc + 1);
                 a = memory->readMemory8(zpageInd(arg0, xindex));
                 b = a;
-                a = (a << 1) | ((a & 0x80u) >> 7);
+                a = (a << 1) | (status & 0x1);
                 setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
@@ -460,7 +460,7 @@ void CPU6502::cycle(uint32_t runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + xindex);
                 b = a;
-                a = (a << 1) | ((a & 0x80u) >> 7);
+                a = (a << 1) | (status & 0x1);
                 setC((b & 0x80u) >> 7);
                 setZ(a);
                 setN(a);
