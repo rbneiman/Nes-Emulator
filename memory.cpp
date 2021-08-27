@@ -20,9 +20,10 @@
 
 //void writeMemory8(uint16_t address, uint8_t arg);
 
-CPUMemory::CPUMemory(RomFile* rom, PPU* ppu):
+CPUMemory::CPUMemory(RomFile* rom, PPU* ppu, Controller* controller):
     rom(rom),
-    ppu(ppu){
+    ppu(ppu),
+    controller(controller){
     for(uint16_t i = 0x4000; i<0x4014; i++){
         memory[i] = 0;
     }
@@ -36,7 +37,7 @@ uint8_t CPUMemory::readMemory8(uint16_t address){
     if(address<0x2000){ address %= 0x800u;} //mirror
     else if(address<0x4000){ address = address % 0x8u + 0x2000u;}
     else if(address > 0x4019){return rom->read16(address);}
-
+    uint8_t temp;
     switch (address) {
         case 0x2002: //PPUSTATUS
             return ppu->getPpuStatus();
@@ -44,6 +45,11 @@ uint8_t CPUMemory::readMemory8(uint16_t address){
             return ppu->getOamData();
         case 0x2007: //PPUDATA
             return ppu->getPpuData();
+        case 0x4016:
+            temp = controller->read(1);
+            return temp;
+        case 0x4017:
+            return controller->read(2);
         default:
             return memory[address];
     }
@@ -81,6 +87,9 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
             break;
         case 0x4014: //OAMDMA
             ppu->setOamDma(arg);
+            break;
+        case 0x4016:
+            controller->write(arg);
             break;
         default:
             memory[address] = arg;

@@ -18,6 +18,7 @@ public:
     CPUMemory* memory;
     PPU* ppu;
     RomFile* rom;
+    Controller* controller;
 
     NESSystem(const std::string& romFile);
 };
