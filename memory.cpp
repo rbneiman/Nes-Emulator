@@ -55,6 +55,13 @@ uint8_t CPUMemory::readMemory8(uint16_t address){
     }
 }
 
+void CPUMemory::writeDMA(uint8_t arg){
+    uint16_t pageAddr = ((uint16_t) arg) << 8;
+    for(int i=0; i < 0x100; i++){
+        ppu->setOamDma(i,readMemory8(pageAddr + i));
+    }
+}
+
 void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
     if(address<0x2000){ //mirror
         address %= 0x800u;
@@ -86,7 +93,8 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
             ppu->setPpuData(arg);
             break;
         case 0x4014: //OAMDMA
-            ppu->setOamDma(arg);
+            writeDMA(arg);
+            //TODO increment 513 cycles
             break;
         case 0x4016:
             controller->write(arg);

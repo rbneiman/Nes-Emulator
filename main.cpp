@@ -38,7 +38,6 @@ int main() {
 
     pixelSet(1,1,sf::Color::Blue);
 
-
     std::thread cpuThread(cpuTask);
     cpuThread.detach();
     controller = 4;

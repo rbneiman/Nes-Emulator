@@ -12,7 +12,7 @@ class RomFile;
 typedef struct{
     uint8_t y;
     uint8_t tile;
-    uint8_t atrib;
+    uint8_t attribute;
     uint8_t x;
 }sprite_t;
 
@@ -30,12 +30,13 @@ private:
 
     bool isOddFrame{false};
 
-    uint8_t ppuMem[0x4000u]{};
     uint8_t OAM[0x100u]{};
+    uint8_t currentOAM{0};
     uint8_t paletteRAM[0x20]{};
 
-    int currentTile{0};
+    int currentTile{2};
     int tileProgress{0};
+    int spriteProgress{0};
 
     uint8_t ppuCtrl{0};
     uint16_t baseNametableAddress{0x2000};
@@ -79,19 +80,23 @@ private:
 
     uint8_t fineXScroll{0};
 
+    uint8_t secondaryOAM[32]{};
     sprite_t sprites[8]{};
-
-    void fillSprites(int line);
-    uint8_t readPPUMemory8(uint16_t address);
-    void writePPUMemory8(uint16_t address, uint8_t arg);
+    uint8_t numSpritesCurrent{0};
+    uint8_t numSpritesNext{0};
 
     uint8_t nameTableTemp{0};
     uint8_t attrTableTemp{0};
     uint16_t patternTableTemp{0};
     tile_t tiles[0x20]{};
 
+    void fetchTile();
+    void evalSprite();
+    void fetchSprite();
     void drawScanline();
 
+    uint8_t readPPUMemory8(uint16_t address);
+    void writePPUMemory8(uint16_t address, uint8_t arg);
 public:
 
 
@@ -107,7 +112,7 @@ public:
 
     void setOamAddr(uint8_t oamAddr);
 
-    uint8_t getOamData();
+    uint8_t getOamData() const;
 
     void setOamData(uint8_t oamData);
 
@@ -119,7 +124,8 @@ public:
 
     void setPpuData(uint8_t ppuData);
 
-    void setOamDma(uint8_t oamDma);
+    void setOamDma(uint8_t addr, uint8_t data);
+
 
 
 };

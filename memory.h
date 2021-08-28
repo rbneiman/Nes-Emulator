@@ -17,7 +17,7 @@ private:
     uint8_t memory[0xFFFF]{};
 
     uint16_t addr;
-
+    void writeDMA(uint8_t arg);
 public:
     explicit CPUMemory(RomFile* rom, PPU* , Controller* controller);
 
@@ -26,6 +26,8 @@ public:
     uint16_t readMemory16(uint16_t address, bool zPage = false);
 
     void printMemoryDebug(int start, int end);
+
+
 };
 
 
