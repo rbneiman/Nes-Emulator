@@ -23,11 +23,11 @@ private:
     DebugLogFile debugLogFile;
     int debugNumCycles;
 
-    uint32_t cpuTime;
+    uint64_t cpuTime;
 public:
     CPU6502();
     void inc(int units);
-    void cycle(uint32_t numClocks);
+    void cycle(uint64_t numClocks);
 
     void printMemoryDebug(int start, int end);
 

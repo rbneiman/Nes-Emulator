@@ -38,7 +38,8 @@ CPU6502::CPU6502():
 
     cpuTime = 0;
 
-    this->status = 0x24u;
+//    this->status = 0x24u;
+    this->status = 0;
     acc = 0;
     xindex = 0;
     yindex = 0;
@@ -58,7 +59,7 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 
-void CPU6502::cycle(uint32_t runTo) {
+void CPU6502::cycle(uint64_t runTo) {
     int32_t checkV = 0;
     uint32_t checkVUnsigned = 0;
     uint16_t arg0 = 0;

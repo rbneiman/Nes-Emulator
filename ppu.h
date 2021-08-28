@@ -32,6 +32,7 @@ private:
 
     uint8_t ppuMem[0x4000u]{};
     uint8_t OAM[0x100u]{};
+    uint8_t paletteRAM[0x20]{};
 
     int currentTile{0};
     int tileProgress{0};
@@ -68,7 +69,7 @@ private:
     uint8_t ppuData{0};
     uint8_t oamDMA{0};
 
-    uint32_t ppuTime{0};
+    uint64_t ppuTime{0};
     uint32_t scanline{0};
     uint32_t scanCycle{0};
     uint32_t vBlankTime{0};
@@ -90,12 +91,13 @@ private:
     tile_t tiles[0x20]{};
 
     void drawScanline();
+
 public:
 
 
     explicit PPU(CPU6502* cpu, RomFile* rom);
 
-    void cycle(int numCycles);
+    void cycle(uint64_t numCycles);
 
     void setPpuCtrl(uint8_t ppuCtrl);
 
@@ -118,6 +120,8 @@ public:
     void setPpuData(uint8_t ppuData);
 
     void setOamDma(uint8_t oamDma);
+
+
 };
 
 #endif //EMULATORTEST_PPU_H

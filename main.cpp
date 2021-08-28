@@ -9,9 +9,10 @@ std::atomic<bool> updated{false};
 std::atomic<unsigned char> controller{0};
 [[noreturn]] void cpuTask(){
 
-    NESSystem system{R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.nes)"};
+    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
+//NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\nestest.nes)"};
 
-    int count = 0;
+    uint64_t count = 0;
     while(true){
         if(updated){
             system.controller->updateState(controller);
@@ -19,7 +20,7 @@ std::atomic<unsigned char> controller{0};
         }
         system.cpu->cycle(count * 20);
         system.ppu->cycle(count * 20);
-        count += 1;
+        ++count;
 #ifdef DEBUG_CPU
 //        if(count % 100 == 0 && count != 0){
 //            cpu.printMemoryDebug(0x00, 0xff);

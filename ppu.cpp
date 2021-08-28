@@ -19,6 +19,9 @@
 #define Yscroll (PPUSCROLL&~0xF0)
 
 #define CHECK_BIT(var,pos) (((var)>>(pos)) & 1)
+#define inRange(num, low, high) (num >= low && num <= high)
+#define getQuadrant(scanline, tileNum) (((scanline%32)/16)*2 + (((tileNum)%4)/2))
+#define attrOffset(scanline, currentTile) (((scanline)/32)*8 + (currentTile)/4)
 
 sf::Color palette[0x40] = {
 sf::Color(84 ,84 ,84 ),
@@ -142,19 +145,6 @@ void PPU::fillSprites(int line){
     }
 }
 
-/** Calculate attribute table offset from the given tile index.
- *
- * @param currentTile The number of the tile to calculate.
- * @return The index in the attribute table associated with this tile.
- */
-int attrOffset(int currentTile){
-//    int rowNum = (currentTile/0x20);
-//    int colNum = (currentTile%0x20);
-//    int blockRow = rowNum/4;
-//    int blockCol = colNum/4;
-
-    return ((currentTile/0x20) * 8 + (currentTile%0x20))/4;
-}
 
 //nameTable -> list of tile indices in the pattern table
 
@@ -164,7 +154,7 @@ int attrOffset(int currentTile){
 //attributeTable -> array of blocks (4x4 tiles), each block one bite ->
 // four 2bit values, one for each 2x2 quadrant of block, represent palettes
 
-void PPU::cycle(int runTo){
+void PPU::cycle(uint64_t runTo){
     uint16_t debug_addr;
     //run through scanCycles one at a time
     while(ppuTime < runTo){
@@ -181,7 +171,7 @@ void PPU::cycle(int runTo){
                         ppuInc(2);
                         break;
                     case 1:
-                        attrTableTemp = readPPUMemory8(baseNametableAddress + 0x3c0 + attrOffset(currentTile));
+                        attrTableTemp = readPPUMemory8(baseNametableAddress + 0x3c0 + attrOffset(scanline, currentTile));
                         tileProgress++;
                         scanCycle+=2;
                         ppuInc(2);
@@ -192,7 +182,7 @@ void PPU::cycle(int runTo){
                         tiles[currentTile].attrTable = attrTableTemp;
                         tiles[currentTile].nameTable = nameTableTemp;
 
-                        for(int i=0; i<7; i++ ){
+                        for(int i=0; i<8; i++ ){
                             uint16_t patternAddr = bgPatternTableAddress + nameTableTemp * 16 + i;
                             uint16_t patternAddr2 = bgPatternTableAddress + nameTableTemp * 16 + 8 + i;
                             tiles[currentTile].patternTable[i] = readPPUMemory8(patternAddr);
@@ -283,10 +273,6 @@ void PPU::cycle(int runTo){
 
 }
 
-int getQuadrant(uint32_t scanLine, int tileNum){
-    return ((scanLine/16)%2)*2 + (tileNum%2);
-}
-
 //draw a single scanline to screen
 void PPU::drawScanline(){
     if(!this->showBackground) return;
@@ -296,10 +282,10 @@ void PPU::drawScanline(){
         tile_t tile = tiles[tileNum];
 
         int quadrant = getQuadrant(scanline, tileNum);
+        uint8_t paletteSection = (tile.attrTable >> (quadrant * 2)) & 0x03;
 
-
-        uint8_t drawByte1 = tiles[tileNum].patternTable[offY];
-        uint8_t drawByte2 = tiles[tileNum].patternTable[offY + 8];
+        uint8_t drawByte1 = tile.patternTable[offY];
+        uint8_t drawByte2 = tile.patternTable[offY + 8];
         sf::Color drawColor;
         uint8_t lower;
         uint8_t upper;
@@ -308,8 +294,10 @@ void PPU::drawScanline(){
             lower = CHECK_BIT(drawByte1, i);
             upper = CHECK_BIT(drawByte2, i);
             paletteIndex = (upper << 1) | lower;
-//            drawColor = sf::Color(quadrant*50,quadrant*50 + i*5, quadrant*50 + offY*5);
-            drawColor = sf::Color(scanline%8 * 20, paletteIndex*70, (i==0 ? 200 : paletteIndex * 70));
+            if(paletteIndex == 0)
+                drawColor = palette[readPPUMemory8(0x3f00)];
+            else
+                drawColor = palette[readPPUMemory8(0x3f00 + (paletteSection * 4) + paletteIndex)];
             pixelSet(tileNum*8 + (7-i), scanline, drawColor);
         }
     }
@@ -320,15 +308,50 @@ void PPU::drawScanline(){
 uint8_t PPU::readPPUMemory8(uint16_t address){
     if(address>0x2EFFu && address<0x3F00u){ address = address % 0xF00u + 0x2000u;} //mirror
     else if(address>0x3F20u){ address = address % 0x20u + 0x3F00u;}
-
-    return rom->read8(address);
+    switch (address) {
+        case 0x3f10:
+            return paletteRAM[0];
+        case 0x3f14:
+            return paletteRAM[4];
+        case 0x3f18:
+            return paletteRAM[8];
+        case 0x3f1c:
+            return paletteRAM[0xC];
+        default:
+            break;
+    }
+    if(inRange(address, 0x3f00, 0x3f1f)){
+        return paletteRAM[address - 0x3f00];
+    }else{
+        return rom->read8(address);
+    }
 }
 
 void PPU::writePPUMemory8(uint16_t address, uint8_t arg){
     if(address>0x2EFFu && address<0x3F00u){ address = address % 0xF00u + 0x2000u;} //mirror
-    else if(address>0x3F20u){ address = address % 0x20u + 0x3F00u;}
+    if(address>0x3F20u){ address = address % 0x20u + 0x3F00u;}
+    switch (address) {
+        case 0x3f10:
+            paletteRAM[0] = arg;
+            return;
+        case 0x3f14:
+            paletteRAM[4] = arg;
+            return;
+        case 0x3f18:
+            paletteRAM[8] = arg;
+            return;
+        case 0x3f1c:
+            paletteRAM[0xC] = arg;
+            return;
+        default:
+            break;
+    }
+    if(inRange(address, 0x3f00, 0x3f1f)){
+        paletteRAM[address - 0x3f00] = arg;
+    }else{
+        rom->write8(address, arg);
+    }
 
-    rom->write8(address, arg);
 }
 
 
