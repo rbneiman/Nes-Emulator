@@ -3,21 +3,32 @@
 #include "screen.h"
 #include <thread>
 #include <iostream>
+#include <unistd.h>
 #include "NESSystem.h"
 
+//16.63 milliseconds per frame on NTSC
+//one cpu cycle every 558.73 ns
+
+
+std::atomic<bool> pause{false};
 std::atomic<bool> updated{false};
 std::atomic<unsigned char> controller{0};
+std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
     NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
 //NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\nestest.nes)"};
 
     uint64_t count = 0;
+
+    sf::Clock clock;
     while(true){
         if(updated){
             system.controller->updateState(controller);
             updated = false;
         }
+        if(pause)
+            continue;
         system.cpu->cycle(count * 20);
         system.ppu->cycle(count * 20);
         ++count;
@@ -42,8 +53,9 @@ int main() {
     cpuThread.detach();
     controller = 4;
     updated = true;
+    sf::Clock clock;
     while (window->isOpen()){
-
+        time_nanos += (clock.restart().asMilliseconds()*100000);
         sf::Event event{};
         while (window->pollEvent(event)){
             // "close requested" event: we close the window
@@ -53,6 +65,7 @@ int main() {
                 sf::Vector2i pos = sf::Mouse::getPosition(*window);
                 pixelSet(pos.x/pixels_size, pos.y/pixels_size, sf::Color::Blue);
                 printf("X:%d, Y:%d \n", pos.x/pixels_size, pos.y/pixels_size);
+                fflush(stdout);
             }if(event.type == sf::Event::KeyPressed){
                 sf::Event::KeyEvent key = event.key;
                 switch(key.code){
@@ -68,17 +81,20 @@ int main() {
                     case(sf::Keyboard::Up):
                         controller |= 0x08;
                         break;
-                    case(sf::Keyboard::Z): //start
+                    case(sf::Keyboard::W): //start
                         controller |= 0x10;
                         break;
-                    case(sf::Keyboard::X): //select
+                    case(sf::Keyboard::Q): //select
                         controller |= 0x20;
                         break;
-                    case(sf::Keyboard::B):
+                    case(sf::Keyboard::A): //B
                         controller |= 0x40;
                         break;
-                    case(sf::Keyboard::A):
+                    case(sf::Keyboard::S): //A
                         controller |= 0x80;
+                        break;
+                    case(sf::Keyboard::Escape):
+                        pause = !pause;
                         break;
                     default:
                         break;
@@ -99,16 +115,16 @@ int main() {
                     case(sf::Keyboard::Up):
                         controller &= ~0x08;
                         break;
-                    case(sf::Keyboard::Z): //start
+                    case(sf::Keyboard::W): //start
                         controller &= ~0x10;
                         break;
-                    case(sf::Keyboard::X): //select
+                    case(sf::Keyboard::Q): //select
                         controller &= ~0x20;
                         break;
-                    case(sf::Keyboard::B):
+                    case(sf::Keyboard::A): //B
                         controller &= ~0x40;
                         break;
-                    case(sf::Keyboard::A):
+                    case(sf::Keyboard::S): //A
                         controller &= 0x7F;
                         break;
                     default:
