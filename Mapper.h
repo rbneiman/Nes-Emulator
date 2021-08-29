@@ -24,12 +24,15 @@ protected:
     bool ignore_mirror;
     uint8_t prgRamSize;
 public:
+    void printMemoryDebug(int start, int end);
     explicit Mapper(const std::vector<char>& contents);
 
     virtual uint8_t read8(uint16_t address);
     virtual uint16_t read16(uint16_t address) = 0;
 
     virtual void write8(uint16_t address, uint8_t arg) = 0;
+
+
 };
 
 class Mapper0 : public Mapper{
@@ -82,6 +85,7 @@ private:
     void writePrgBank(uint8_t arg);
 
 public:
+
     explicit Mapper1(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;
     void write8(uint16_t address, uint8_t arg) override;
