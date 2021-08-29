@@ -28,7 +28,7 @@ ErrorMessage RomFile::initNES10(){
     uint8_t flags6 = contents[6];
     uint8_t flags7 = contents[7];
     consoleType = static_cast<console_type_t>((flags7 & 0b10) | (flags7 & 0b01));
-    mapperNum = (flags7 & 0b11110000) | (flags6 & 0b00001111);
+    mapperNum = (flags7 & 0b11110000) | ((flags6 & 0b11110000)>>4);
 
     if(consoleType != NES){
         return {NON_SUPPORTED_CONSOLE, "Not an NES game."};
