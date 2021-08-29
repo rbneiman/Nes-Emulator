@@ -11,7 +11,7 @@ class RomFile;
 
 typedef struct{
     uint8_t y;
-    uint8_t tile;
+    uint8_t patternTable[32];
     uint8_t attribute;
     uint8_t x;
 }sprite_t;
@@ -66,6 +66,7 @@ private:
     uint8_t yScroll{0};
 
     bool settingPPUAddrMSB = true;
+    bool loadBuffer = true;
     uint16_t ppuAddr{0};
     uint8_t ppuData{0};
     uint8_t oamDMA{0};
@@ -75,20 +76,25 @@ private:
     uint32_t scanCycle{0};
     uint32_t vBlankTime{0};
 
-    uint16_t vramAddr{0};
-    uint16_t tempAddr{0};
-
     uint8_t fineXScroll{0};
 
-    uint8_t secondaryOAM[32]{};
+    uint8_t secondaryOAM[64]{};
+    uint16_t spriteTileTemp{0};
+
+    uint8_t spriteEvalN{0};
+    uint8_t spriteEvalM{0};
+    uint8_t spriteEvalProgress{0};
+    sprite_t spritesNext[8]{};
     sprite_t sprites[8]{};
     uint8_t numSpritesCurrent{0};
     uint8_t numSpritesNext{0};
+    uint8_t spriteFetchCurrent{0};
 
     uint8_t nameTableTemp{0};
     uint8_t attrTableTemp{0};
-    uint16_t patternTableTemp{0};
     tile_t tiles[0x20]{};
+
+    uint16_t scanlineColors[256]{};
 
     void fetchTile();
     void evalSprite();
@@ -127,7 +133,7 @@ public:
     void setOamDma(uint8_t addr, uint8_t data);
 
 
-
+    void printMemoryDebug(int start, int end);
 };
 
 #endif //EMULATORTEST_PPU_H
