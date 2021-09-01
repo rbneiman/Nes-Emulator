@@ -5,13 +5,16 @@
 #include <cstdint>
 #include "cpu.h"
 #include "rom.h"
+#include "SFML/Window.hpp"
+
+//#define DRAW_TILE_BOUNDS
 
 class CPU6502;
 class RomFile;
 
 typedef struct{
     uint8_t y;
-    uint8_t patternTable[32];
+    uint8_t patternTable[2];
     uint8_t attribute;
     uint8_t x;
 }sprite_t;
@@ -25,8 +28,25 @@ typedef struct{
 
 class PPU{
 private:
+    sf::Clock clock{};
+
     CPU6502* cpu;
     RomFile* rom;
+
+    uint16_t vramAddr{0};
+    uint16_t tVramAddr{0};
+    uint8_t fineXScroll{0};
+
+
+    uint8_t shiftQuadrant{0};
+
+
+    uint8_t nameTableTemp{0};
+    uint8_t shiftAttrTable[2]{0};
+    uint8_t latchAttrTable[2]{0};
+    uint8_t shiftAttrTableTemp{0};
+    uint8_t shiftPatternTableTemp[2]{0};
+    uint16_t shiftPatternTable[2];
 
     bool isOddFrame{false};
 
@@ -62,21 +82,12 @@ private:
     uint8_t oamData{0};
 
     bool settingXScroll = true;
-    uint8_t xScroll{0};
-    uint8_t yScroll{0};
-
-    bool settingPPUAddrMSB = true;
     bool loadBuffer = true;
-    uint16_t ppuAddr{0};
-    uint8_t ppuData{0};
     uint8_t oamDMA{0};
 
     uint64_t ppuTime{0};
     uint32_t scanline{0};
     uint32_t scanCycle{0};
-    uint32_t vBlankTime{0};
-
-    uint8_t fineXScroll{0};
 
     uint8_t secondaryOAM[64]{};
     uint16_t spriteTileTemp{0};
@@ -90,7 +101,6 @@ private:
     uint8_t numSpritesNext{0};
     uint8_t spriteFetchCurrent{0};
 
-    uint8_t nameTableTemp{0};
     uint8_t attrTableTemp{0};
     tile_t tiles[0x20]{};
 
@@ -99,7 +109,10 @@ private:
     void fetchTile();
     void evalSprite();
     void fetchSprite();
+    void incrementHoriz();
+    void incrementY();
     void drawScanline();
+    void drawDot();
 
     uint8_t readPPUMemory8(uint16_t address);
     void writePPUMemory8(uint16_t address, uint8_t arg);
@@ -134,6 +147,9 @@ public:
 
 
     void printMemoryDebug(int start, int end);
+
+
+
 };
 
 #endif //EMULATORTEST_PPU_H

@@ -55,7 +55,13 @@ uint16_t Mapper0::read16(uint16_t address) {
         case 0x0000 ... 0x1FFF:
             return *((uint16_t*) (chr.data() + address));
         case 0x2000 ... 0x2FFF:
-            return *((uint16_t*) (vram + address - 0x2000));
+            address -= 0x2000;
+            if(mirror_type == VERTICAL){
+                address %= 0x800;
+            }else{
+                address = ((address) / 0x800) * 0x800 + ((address) % 0x400);
+            }
+            return *((uint16_t*) (vram + address));
         case 0x8000 ... 0xBFFF:
             return *((uint16_t*) (prg.data() + address - 0x8000));
         case 0xC000 ... 0xFFFF:

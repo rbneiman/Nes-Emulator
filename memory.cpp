@@ -4,7 +4,6 @@
 //#define cpuInc(arg) cpuTime += 15 * arg
 
 
-
 //CPU MEMORY MAP
 //Address range	Size	Device
 //$0000-$07FF	$0800	2KB internal RAM

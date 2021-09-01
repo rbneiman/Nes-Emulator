@@ -25,7 +25,7 @@
 #define PUSH(arg) (memory->writeMemory8(0x100 + (sp--),arg))
 #define POP(arg)  (memory->readMemory8(0x100 + (++sp)))
 
-#define pageCross(arg1,arg2) ((arg1&0xFF00) != (arg2&0xFF00))
+#define pageCross(arg1,arg2) (((arg1)&0xFF00) != ((arg2)&0xFF00))
 
 #define cpuInc(arg) cpuTime += 15 * arg
 
@@ -1749,7 +1749,7 @@ void CPU6502::loadRom() {
 }
 
 void CPU6502::printStatus() const{
-    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%d\n", pc, acc, xindex, yindex, status, sp, cpuTime/15 + 7);
+    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%lld\n", pc, acc, xindex, yindex, status, sp, cpuTime/15 + 7);
 }
 
 void CPU6502::doNMI(){
