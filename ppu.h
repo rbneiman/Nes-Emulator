@@ -106,7 +106,7 @@ private:
 
     uint16_t scanlineColors[256]{};
 
-    void fetchTile();
+    void fetchTile(uint8_t offX=0, uint16_t offY=0);
     void evalSprite();
     void fetchSprite();
     void incrementHoriz();

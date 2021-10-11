@@ -98,6 +98,9 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
         case 0x4016:
             controller->write(arg);
             break;
+        case 0x4020 ... 0xffff:
+            rom->write8(address, arg);
+            break;
         default:
             memory[address] = arg;
     }

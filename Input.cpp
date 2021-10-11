@@ -30,6 +30,7 @@ void Controller::write(uint8_t data) {
 }
 
 uint8_t Controller::read(int controllerPort){
-
+    if(controllerPort == 2)
+        return 0;
     return CHECK_BIT(readState, nextBit--);
 }

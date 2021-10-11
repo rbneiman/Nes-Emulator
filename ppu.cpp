@@ -145,9 +145,8 @@ uint8_t getQuadrant(uint8_t nameAddr){
 //attributeTable -> array of blocks (4x4 tiles), each block one bite ->
 // four 2bit values, one for each 2x2 quadrant of block, represent palettes
 
-void PPU::fetchTile() {
+void PPU::fetchTile(uint8_t offX, uint16_t offY){
     uint16_t patternAddr;
-    uint16_t patternAddr2;
     switch (tileProgress) {
         case 0:
 
@@ -167,7 +166,7 @@ void PPU::fetchTile() {
             ++tileProgress;
             break;
         case 4:
-            patternAddr = bgPatternTableAddress + nameTableTemp * 16 + (scanline%8);
+            patternAddr = bgPatternTableAddress + nameTableTemp * 16 + ((scanline + offY)%8);
             shiftPatternTableTemp[0] = readPPUMemory8(patternAddr);
             shiftPatternTableTemp[1] = readPPUMemory8(patternAddr + 8);
             ++tileProgress;
@@ -197,11 +196,11 @@ void PPU::evalSprite(){
 
     switch(spriteEvalProgress){
         case 0:
-            secondaryOAM[numSpritesNext*4] = OAM[spriteEvalN * 4];
-            if(SPRITE_CHECK((scanline + 1), OAM[spriteEvalN * 4] ,longSprites)){
+            secondaryOAM[numSpritesNext*4] = OAM[spriteEvalN * 4] + 1;
+            if(SPRITE_CHECK((scanline+1), OAM[spriteEvalN * 4] + 1,longSprites)){
                 secondaryOAM[numSpritesNext*4 + 1] = OAM[spriteEvalN * 4 + 1];
                 secondaryOAM[numSpritesNext*4 + 2] = OAM[spriteEvalN * 4 + 2];
-                secondaryOAM[numSpritesNext*4 + 3] = OAM[spriteEvalN * 4 + 3];
+                secondaryOAM[numSpritesNext*4 + 3] = OAM[spriteEvalN * 4 + 3] - 1;
                 ++numSpritesNext;
             }
             ++spriteEvalN;
@@ -213,11 +212,15 @@ void PPU::evalSprite(){
     }
 
 }
+//scanline zero
+//detect y=0+1 = 1
+//((scanline+1) - y) = (1-1) = 0 < 16 -> draw
 void PPU::fetchSprite(){
     if(spriteFetchCurrent >= numSpritesNext)
         return;
     int spriteY;
     uint16_t spriteTileAddr;
+    uint8_t offY;
     switch (spriteProgress) {
         case 0 ... 3:
             ++spriteProgress;
@@ -231,17 +234,18 @@ void PPU::fetchSprite(){
 
 //            uint8_t spriteOffY = sprite.y - scanline;
             if(longSprites){
+                offY = (spritesNext[spriteFetchCurrent].attribute & 0x80) ? 16 : 32;
                 spriteTileAddr = (spriteTileTemp & 1) * 0x1000 + ((spriteTileTemp & 0xFE)>>1) * 32;
-                uint16_t patternAddr = spriteTileAddr + ((scanline + 1) - spriteY);
+                uint16_t patternAddr = spriteTileAddr + ((scanline) - spriteY);
                 spritesNext[spriteFetchCurrent].patternTable[0] = readPPUMemory8(patternAddr);
                 spritesNext[spriteFetchCurrent].patternTable[1] = readPPUMemory8(patternAddr + 16);
             }else{
+                offY = (spritesNext[spriteFetchCurrent].attribute & 0x80) ? (8 - ((scanline + 1) - spriteY)) : (((scanline + 1) - spriteY));
                 spriteTileAddr = (spritePatternTableAddress) + (spriteTileTemp) * 16;
-                uint16_t patternAddr = spriteTileAddr + ((scanline + 1) - spriteY);
+                uint16_t patternAddr = spriteTileAddr + offY;
                 spritesNext[spriteFetchCurrent].patternTable[0] = readPPUMemory8(patternAddr);
                 spritesNext[spriteFetchCurrent].patternTable[1] = readPPUMemory8(patternAddr + 8);
             }
-
 
             ++spriteFetchCurrent;
             ++spriteProgress;
@@ -344,17 +348,9 @@ void PPU::cycle(uint64_t runTo){
                             fetchSprite();
                         ppuInc(1);
                         break;
-                    case 258 ... 319: //258-320 fetch next scanline's sprites
+                    case 258 ... 320: //258-320 fetch next scanline's sprites
                         if(showSprites)
                             fetchSprite();
-                        ppuInc(1);
-                        break;
-                    case 320:   //258-320 fetch next scanline's sprites
-                        if(showSprites)
-                            fetchSprite();
-                        for(int i=0; i<numSpritesNext; i++){
-                            sprites[i] = spritesNext[i];
-                        }
                         ppuInc(1);
                         break;
                     case 321 ... 327: //321-327 first two tiles next scanline
@@ -482,14 +478,22 @@ void PPU::cycle(uint64_t runTo){
             case 262:
                 scanline = 0;
                 isOddFrame = !isOddFrame;
-//                sf::sleep(sf::milliseconds(15));
-                std::cout << clock.restart().asMilliseconds() << std::endl;
+                sf::sleep(sf::milliseconds(17 - clock.getElapsedTime().asMilliseconds()));
+                clock.restart();
+//                std::cout << clock.restart().asMilliseconds() << std::endl;
                 break;
         }
 
         if(scanCycle >= 341){
-            if(scanline<240)
+            if(scanline<240){
+
                 drawScanline();
+                for(int i=0; i<numSpritesNext; i++){
+                    sprites[i] = spritesNext[i];
+
+                }
+            }
+
 
             scanline++;
             scanCycle = 0;
@@ -511,10 +515,10 @@ void PPU::drawDot(){
 
     if(patternData == 0){
         drawColor = &palette[readPPUMemory8(0x3f00)];
-        scanlineColors[scanCycle] = 0x3f00;
+        scanlineColors[scanCycle - 1] = 0x3f00;
     }else{
         drawColor = &palette[readPPUMemory8(paletteIndex)];
-        scanlineColors[scanCycle] = paletteIndex;
+        scanlineColors[scanCycle - 1] = paletteIndex;
     }
 
 #ifdef DRAW_TILE_BOUNDS
@@ -525,7 +529,7 @@ void PPU::drawDot(){
 
 #endif
 
-    pixelSet(scanCycle, scanline, *drawColor);
+    pixelSet(scanCycle - 1, scanline, *drawColor);
     shiftPatternTable[0] <<= 1;
     shiftPatternTable[1] <<= 1;
     shiftAttrTable[0] = (shiftAttrTable[0] >> 1) | (latchAttrTable[0] << 7);
@@ -541,39 +545,43 @@ void PPU::drawScanline(){
         sprite_t sprite = sprites[spriteNum];
 
         uint8_t paletteSection = (sprite.attribute) & 0x03;
+        bool horizFlip = (sprite.attribute & 0x40);
+        bool behindBG = (sprite.attribute & 0x20);
         uint8_t drawByte1 = sprite.patternTable[0];
         uint8_t drawByte2 = sprite.patternTable[1];
         sf::Color* drawColor;
         uint8_t paletteIndex;
         if(longSprites){
-            for(int i=0; (sprite.x + i) < std::min(sprite.x + 8, 256); i++){
+            for(int i=0; i<8; i++){
                 uint8_t lower = CHECK_BIT(drawByte1, i);
                 uint8_t upper = CHECK_BIT(drawByte2, i);
                 paletteIndex = (upper << 1) | lower;
-                if(paletteIndex == 0)
-                    ;
-                else{
-                    if(spriteNum == 0 && scanlineColors[sprite.x+i] != 0x3f00)
+                uint8_t xPos = horizFlip ? sprite.x + i: sprite.x+(7-i);
+                if(paletteIndex != 0){
+                    if(spriteNum == 0 && scanlineColors[xPos] != 0x3f00)
                         ppuStatus |= 0x40; //set sprite 0 hit flag
                     drawColor = &palette[readPPUMemory8(0x3f10 + (paletteSection * 4) + paletteIndex)];
+                    if(!behindBG || (scanlineColors[xPos] == 0x3f00))
+                        pixelSet(xPos, scanline, *drawColor);
                 }
-
-                pixelSet((sprite.x+i), scanline, *drawColor);
             }
         }else{
-            for(int i=0; (sprite.x + i) < std::min(sprite.x + 8, 256); i++){
+            for(int i=0; i<8; i++){
                 uint8_t lower = CHECK_BIT(drawByte1, i);
                 uint8_t upper = CHECK_BIT(drawByte2, i);
                 paletteIndex = (upper << 1) | lower;
-                if(paletteIndex == 0)
-                    drawColor = &palette[0];
-                else{
-                    if(spriteNum == 0 && scanlineColors[sprite.x+i] != 0x3f00)
+                uint8_t xPos = horizFlip ? sprite.x + i: sprite.x+(7-i);
+                if(xPos < sprite.x)
+                    continue;
+                if(paletteIndex != 0){
+                    if(spriteNum == 0 && scanlineColors[xPos] != 0x3f00)
                         ppuStatus |= 0x40; //set sprite 0 hit flag
                     drawColor = &palette[readPPUMemory8(0x3f10 + (paletteSection * 4) + paletteIndex)];
+                    if(!behindBG || (scanlineColors[xPos] == 0x3f00))
+                        pixelSet(xPos, scanline, *drawColor);
                 }
 
-                pixelSet((sprite.x+(7-i)), scanline, *drawColor);
+
             }
         }
     }

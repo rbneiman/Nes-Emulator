@@ -14,7 +14,7 @@ uint8_t Mapper::read8(uint16_t address) {
 Mapper::Mapper(const std::vector<char> &contents): contents(contents){
     prgSize = contents[4] * 0x4000; //16 kiB
     chrSize = contents[5] * 0x2000; //8 kiB
-
+    chrRAM = !chrSize;
     uint8_t flags6 = contents[6];
     mirror_type = static_cast<mirror_type_t>(flags6 & 0b1);
     has_persistent = flags6 & 0b10;
@@ -46,6 +46,7 @@ Mapper0::Mapper0(const std::vector<char> &contents): Mapper{contents} {
     int index = 16;
     prg = {contents.data() + index, contents.data() + index + prgSize};
     index += prgSize;
+
     chr = {contents.data() + index, contents.data() + index + chrSize};
     index += chrSize;
 }
@@ -97,6 +98,10 @@ Mapper1::Mapper1(const std::vector<char> &contents) : Mapper(contents), prgRAM(0
     int index = 16;
     prg = {contents.data() + index, contents.data() + index + prgSize};
     index += prgSize;
+    prgBank1Off = prgSize - 0x4000;
+    if(chrRAM){
+        chrSize = 0x2000; //8 KiB
+    }
     chr = {contents.data() + index, contents.data() + index + chrSize};
     index += chrSize;
 }
@@ -133,11 +138,11 @@ uint8_t Mapper1::writeLoadReg(uint8_t arg) {
     if(loadReg & 0x1){
         loadReg = ((arg & 0x1) << 4) | (loadReg >> 1);
         loadDone = true;
-        out = loadReg & 0b1111;
+        out = loadReg & 0b11111;
         loadReg = 0b10000;
     }else{
         loadReg = ((arg & 0x1) << 4) | (loadReg >> 1);
-        out = loadReg & 0b1111;
+        out = loadReg & 0b11111;
     }
     return out;
 }
@@ -187,6 +192,7 @@ void Mapper1::writePrgBank(uint8_t arg) {
         } else if(prgBankMode == 2){ //bank 0 fixed
             prgBank1Off = 0x4000 * switchAmount;
         } else if(prgBankMode == 3){ //bank 1 fixed
+            if(chrSize)
             prgBank0Off = 0x4000 * switchAmount;
         }
         loadDone = false;
@@ -235,6 +241,10 @@ uint16_t Mapper1::mirror(uint16_t address) const {
 void Mapper1::write8(uint16_t address, uint8_t arg) {
     uint16_t debugAddr = address;
     switch (address) {
+        case 0x0000 ... 0x0FFF: //chr bank 0
+            chr[address + chrBank1Off] = arg;
+        case 0x1000 ... 0x1FFF: //chr bank 1
+            chr[address - 0x1000 + chrBank1Off] = arg;
         case 0x2000 ... 0x2FFF:
             address = (address-0x2000) % 0x1000;
             vram[mirror(address)] = arg;

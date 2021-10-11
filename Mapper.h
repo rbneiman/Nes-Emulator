@@ -19,6 +19,7 @@ protected:
     int prgSize;
     int chrSize;
     mirror_type_t mirror_type;
+    bool chrRAM;
     bool has_persistent;
     bool has_trainer;
     bool ignore_mirror;
@@ -69,7 +70,7 @@ private:
 
     uint8_t control{0};
     uint8_t mirroring{0};
-    uint8_t prgBankMode{0};
+    uint8_t prgBankMode{3};
     uint8_t chrBankMode{0};
     uint8_t chrBank0{0};
     uint8_t chrBank1{0};

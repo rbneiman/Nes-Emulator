@@ -17,6 +17,7 @@ std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
     NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
+//NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\The Legend of Zelda (USA).nes)"};
 //NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\nestest.nes)"};
 
     uint64_t count = 0;
