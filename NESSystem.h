@@ -21,6 +21,8 @@ public:
     Controller* controller;
 
     NESSystem(const std::string& romFile);
+
+    virtual ~NESSystem();
 };
 
 

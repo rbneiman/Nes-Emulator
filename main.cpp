@@ -28,8 +28,11 @@ std::atomic<uint32_t> time_nanos{0};
             system.controller->updateState(controller);
             updated = false;
         }
-        if(pause)
+        if(pause){
+            sf::sleep(sf::milliseconds(20));
             continue;
+        }
+
         system.cpu->cycle(count * 20);
         system.ppu->cycle(count * 20);
         ++count;
@@ -133,8 +136,7 @@ int main() {
                 }
                 updated = true;
             }
-
-
+            sf::sleep(sf::milliseconds(5));
         }
     }
     return 0;

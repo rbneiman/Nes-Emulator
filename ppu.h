@@ -113,6 +113,7 @@ private:
     void incrementY();
     void drawScanline();
     void drawDot();
+    void shift();
 
     uint8_t readPPUMemory8(uint16_t address);
     void writePPUMemory8(uint16_t address, uint8_t arg);

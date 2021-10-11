@@ -49,13 +49,13 @@ void renderThread(){
     while(!ready){;}
     ready = 0;
     window->setActive(true);
-
     // the rendering loop
     while (window->isOpen())
     {
         window->clear(sf::Color::Black);
         window->draw(*pixels);
         window->display();
+        sf::sleep(sf::milliseconds(16));
     }
     ready = 1;
 }

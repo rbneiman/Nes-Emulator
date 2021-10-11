@@ -13,3 +13,11 @@ NESSystem::NESSystem(const std::string& romFile){
     cpu->setMemory(memory);
     cpu->loadRom();
 }
+
+NESSystem::~NESSystem() {
+    delete rom;
+    delete cpu;
+    delete ppu;
+    delete controller;
+    delete memory;
+}

@@ -166,7 +166,7 @@ void PPU::fetchTile(uint8_t offX, uint16_t offY){
             ++tileProgress;
             break;
         case 4:
-            patternAddr = bgPatternTableAddress + nameTableTemp * 16 + ((scanline + offY)%8);
+            patternAddr = bgPatternTableAddress + nameTableTemp * 16 + ((vramAddr & 0x7000) >> 12);
             shiftPatternTableTemp[0] = readPPUMemory8(patternAddr);
             shiftPatternTableTemp[1] = readPPUMemory8(patternAddr + 8);
             ++tileProgress;
@@ -305,8 +305,9 @@ void PPU::cycle(uint64_t runTo){
                         currentOAM = 0;
                         spriteEvalN = 0;
                         spriteFetchCurrent = 0;
+                        tileProgress = 8;
                         break;
-                    case 1 ... 64:  //1-64 tile fetches, OAM clear
+                    case 1:  //1-64 tile fetches, OAM clear
                         if(showBackground || showSprites){
                             if(scanCycle % 8 == 0){
                                 incrementHoriz();
@@ -318,6 +319,19 @@ void PPU::cycle(uint64_t runTo){
                         }
                         ppuInc(1);
                         break;
+                    case 2 ... 64:
+                        if(showBackground || showSprites){
+                            if(scanCycle % 8 == 0){
+                                incrementHoriz();
+                            }
+                            secondaryOAM[++currentOAM] = 0xFF;
+                            if(showBackground)
+                                fetchTile();
+                            drawDot();
+                        }
+                        shift();
+                        ppuInc(1);
+                        break;
                     case 65 ... 255: //65-255 tile fetches, sprite eval
                         if(showBackground || showSprites){
                             if(scanCycle % 8 == 0)
@@ -327,7 +341,7 @@ void PPU::cycle(uint64_t runTo){
                                 fetchTile();
                             drawDot();
                         }
-
+                        shift();
                         ppuInc(1);
                         break;
                     case 256: //256 tile fetches, sprite eval, y increment
@@ -339,6 +353,7 @@ void PPU::cycle(uint64_t runTo){
                                 fetchTile();
                             drawDot();
                         }
+                        shift();
                         ppuInc(1);
                         break;
                     case 257: //257 fetch next scanline's sprites, copy horizontal position to v
@@ -346,80 +361,59 @@ void PPU::cycle(uint64_t runTo){
                             vramAddr = (vramAddr & 0x7BE0) | (tVramAddr & 0x041F);
                         if(showSprites)
                             fetchSprite();
+                        if(showBackground)
+                            fetchTile();
+                        shift();
                         ppuInc(1);
                         break;
-                    case 258 ... 320: //258-320 fetch next scanline's sprites
+                    case 258 ... 319: //258-320 fetch next scanline's sprites
                         if(showSprites)
                             fetchSprite();
                         ppuInc(1);
                         break;
-                    case 321 ... 327: //321-327 first two tiles next scanline
+                    case 320:
+                        if(showSprites)
+                            fetchSprite();
+                        tileProgress = 8;
+                        ppuInc(1);
+                        break;
+                    case 321: //321-327 first two tiles next scanline
                         if(showBackground)
                             fetchTile();
+                        ppuInc(1);
+                        break;
+                    case 322 ... 327:
+                        if(showBackground)
+                            fetchTile();
+                        shift();
                         ppuInc(1);
                         break;
                     case 328 ... 336: //321-336 first two tiles next scanline, increment horizontal v
                         if(showBackground)
                             fetchTile();
-                        if(scanCycle % 8 == 0 && (showBackground || showSprites))
+                        if((scanCycle % 8 == 0) && (showBackground || showSprites)){
                             incrementHoriz();
+                        }
+                        shift();
                         ppuInc(1);
                         break;
-                    case 337 ... 340: //337-340 useless tile fetches
+                    case 337:
+                        if(showBackground)
+                            fetchTile();
+                        shift();
+                        ppuInc(1);
+                        break;
+                    case 338 ... 340: //337-340 useless tile fetches
                         ppuInc(1);
                         break;
                 }
                 ++scanCycle;
                 break;
             case 240: //240 post-render line
-                switch (scanCycle) {
-                    case 1 ... 255:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites){
-                            incrementHoriz();
-                            incrementY();
-                        }
-                        break;
-                    case 256:
-                        if(showBackground || showSprites){
-                            incrementHoriz();
-                            incrementY();
-                        }
-                        break;
-                    case 257:
-                        if(showBackground || showSprites)
-                            vramAddr = (vramAddr & 0x7BE0) | (tVramAddr & 0x0400) | (tVramAddr & 0x001F);
-                        break;
-                    case 328 ... 336:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites)
-                            incrementHoriz();
-                        break;
-                }
                 scanCycle++;
                 ppuInc(1);
                 break;
             case 241 ... 260: //241-260 vBlank lines
-                switch (scanCycle) {
-                    case 1 ... 255:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites){
-                            incrementHoriz();
-                            incrementY();
-                        }
-                        break;
-                    case 256:
-                        if(showBackground || showSprites){
-                            incrementHoriz();
-                            incrementY();
-                        }
-                        break;
-                    case 257:
-                        if(showBackground || showSprites)
-                            vramAddr = (vramAddr & 0x7BE0) | (tVramAddr & 0x0400) | (tVramAddr & 0x001F);
-                        break;
-                    case 328 ... 336:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites)
-                            incrementHoriz();
-                        break;
-                }
                 if(scanline == 241 && scanCycle == 1){
                     if(generateNMI)
                         cpu->doNMI();
@@ -433,15 +427,24 @@ void PPU::cycle(uint64_t runTo){
                     case 0:
                         ppuStatus &= 0x9F; //clear sprite 0 hit and sprite overflow flags
                         spriteFetchCurrent = 0;
-//                        tileProgress = 8;
+                        tileProgress = 8;
                         break;
-                    case 1 ... 255:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites){
+                    case 1:
+                        if((scanCycle % 8 == 0) && (showBackground || showSprites)){
                             incrementHoriz();
                             incrementY();
                         }
                         if(showBackground)
                             fetchTile();
+                        break;
+                    case 2 ... 255:
+                        if((scanCycle % 8 == 0) && (showBackground || showSprites)){
+                            incrementHoriz();
+                            incrementY();
+                        }
+                        if(showBackground)
+                            fetchTile();
+                        shift();
                         break;
                     case 256:
                         if(showBackground || showSprites){
@@ -450,27 +453,39 @@ void PPU::cycle(uint64_t runTo){
                         }
                         if(showBackground)
                             fetchTile();
+                        shift();
                         break;
                     case 257:
                         if(showBackground || showSprites)
                             vramAddr = (vramAddr & 0x7BE0) | (tVramAddr & 0x0400) | (tVramAddr & 0x001F);
+                        if(showBackground)
+                            fetchTile();
+                        shift();
                         break;
                     case 280 ... 304:
                         if(showBackground || showSprites)
                             vramAddr = (vramAddr & 0x041f) | (tVramAddr & 0x7BE0);
                         break;
-                    case 321 ... 336:
-                        if(scanCycle % 8 == 0 && showBackground || showSprites)
+                    case 321:
+                        tileProgress = 8;
+                        if((scanCycle % 8 == 0) && (showBackground || showSprites))
                             incrementHoriz();
                         if(showBackground)
                             fetchTile();
                         break;
-
+                    case 322 ... 336:
+                        if((scanCycle % 8 == 0) && (showBackground || showSprites))
+                            incrementHoriz();
+                        if(showBackground)
+                            fetchTile();
+                        shift();
+                        break;
+                    case 337:
+                        if(showBackground)
+                            fetchTile();
+                        shift();
+                        break;
                 }
-
-//                else if(inRange(scanCycle, 321, 336)){
-//                    fetchTile();
-//                }
 
                 scanCycle +=1;
                 ppuInc(1);
@@ -486,24 +501,28 @@ void PPU::cycle(uint64_t runTo){
 
         if(scanCycle >= 341){
             if(scanline<240){
-
                 drawScanline();
                 for(int i=0; i<numSpritesNext; i++){
                     sprites[i] = spritesNext[i];
 
                 }
             }
-
-
             scanline++;
             scanCycle = 0;
-
         }
     }
 
 }
 
+void PPU::shift() {
+    shiftPatternTable[0] <<= 1;
+    shiftPatternTable[1] <<= 1;
+    shiftAttrTable[0] = (shiftAttrTable[0] >> 1) | (latchAttrTable[0] << 7);
+    shiftAttrTable[1] = (shiftAttrTable[1] >> 1) | (latchAttrTable[1] << 7);
+}
 
+
+//#define DRAW_TILE_BOUNDS
 void PPU::drawDot(){
     sf::Color* drawColor;
     uint8_t patternData = (((shiftPatternTable[1] << fineXScroll) & 0x8000)>>14) | (((shiftPatternTable[0] << fineXScroll) & 0x8000)>>15);
@@ -521,19 +540,18 @@ void PPU::drawDot(){
         scanlineColors[scanCycle - 1] = paletteIndex;
     }
 
+
 #ifdef DRAW_TILE_BOUNDS
-    if(tileProgress == 0){
-        boundColor = *drawColor + sf::Color(20,20,20);
+
+    if(tileProgress == 0 || (scanline%8 == 0)){
+        sf::Color boundColor = *drawColor + sf::Color(20,20,20);
         drawColor = &boundColor;
     }
 
 #endif
 
     pixelSet(scanCycle - 1, scanline, *drawColor);
-    shiftPatternTable[0] <<= 1;
-    shiftPatternTable[1] <<= 1;
-    shiftAttrTable[0] = (shiftAttrTable[0] >> 1) | (latchAttrTable[0] << 7);
-    shiftAttrTable[1] = (shiftAttrTable[1] >> 1) | (latchAttrTable[1] << 7);
+
 }
 
 //draw a single scanline to the actual screen
