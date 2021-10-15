@@ -18,6 +18,7 @@ typedef struct{
     uint8_t attribute;
     uint8_t x;
     uint8_t active;
+    bool isSprite0;
 }sprite_t;
 
 typedef struct{
@@ -93,6 +94,7 @@ private:
     uint8_t secondaryOAM[64]{};
     uint16_t spriteTileTemp{0};
 
+    bool spriteZeroActive{false};
     uint8_t spriteEvalN{0};
     uint8_t spriteEvalM{0};
     uint8_t spriteEvalProgress{0};

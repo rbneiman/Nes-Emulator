@@ -12,7 +12,6 @@
 //#define getQuadrant(scanline, tileNum) (((scanline%32)/16)*2 + (((tileNum)%4)/2))
 #define attrOffset(scanline, currentTile) (((scanline)/32)*8 + (currentTile)/4)
 #define COARSE_X vramAddr&0x001F
-#define NAMETABLE
 #define SPRITE_CHECK(scanline, spriteY, longSprites) ((longSprites) ? ((uint32_t) scanline)-((uint32_t)spriteY) < 16 : ((uint32_t)scanline)-((uint32_t)spriteY) < 8)
 //#define DRAW_TILE_BOUNDS
 //#define DRAW_SPRITE_BOX
@@ -194,27 +193,20 @@ void PPU::evalSprite(){
     if(numSpritesNext > 7 || spriteEvalN >= 63 )
         return;
 
-    switch(spriteEvalProgress){
-        case 0:
-            secondaryOAM[numSpritesNext*4] = OAM[spriteEvalN * 4] + 1;
-            if(SPRITE_CHECK((scanline+1), OAM[spriteEvalN * 4] + 1,longSprites)){
-                secondaryOAM[numSpritesNext*4 + 1] = OAM[spriteEvalN * 4 + 1];
-                secondaryOAM[numSpritesNext*4 + 2] = OAM[spriteEvalN * 4 + 2];
-                secondaryOAM[numSpritesNext*4 + 3] = OAM[spriteEvalN * 4 + 3] - 1;
-                ++numSpritesNext;
-            }
-            ++spriteEvalN;
-            break;
-        case 1:
-            break;
-        case 2:
-            break;
+    secondaryOAM[numSpritesNext*4] = OAM[spriteEvalN * 4] + 1;
+    if(SPRITE_CHECK((scanline+1), OAM[spriteEvalN * 4] + 1,longSprites)){
+        if(spriteEvalN == 0){
+            spriteZeroActive = true;
+        }
+        secondaryOAM[numSpritesNext*4 + 1] = OAM[spriteEvalN * 4 + 1];
+        secondaryOAM[numSpritesNext*4 + 2] = OAM[spriteEvalN * 4 + 2];
+        secondaryOAM[numSpritesNext*4 + 3] = OAM[spriteEvalN * 4 + 3];
+        ++numSpritesNext;
     }
-
+    ++spriteEvalN;
 }
-//scanline zero
-//detect y=0+1 = 1
-//((scanline+1) - y) = (1-1) = 0 < 16 -> draw
+
+
 void PPU::fetchSprite(){
     if(spriteFetchCurrent >= numSpritesNext)
         return;
@@ -236,6 +228,11 @@ void PPU::fetchSprite(){
             spriteFetch->active = 0;
             spriteY = spriteFetch->y;
             horizFlip = (secondaryOAM[spriteFetchCurrent * 4 + 2] & 0x40);
+            if(spriteZeroActive && spriteFetchCurrent==0){
+                spriteFetch->isSprite0 = true;
+            }else{
+                spriteFetch->isSprite0 = false;
+            }
 //            uint8_t spriteOffY = sprite.y - scanline;
             if(longSprites){
                 offY = (spritesNext[spriteFetchCurrent].attribute & 0x80) ? 16 : 32;
@@ -252,11 +249,9 @@ void PPU::fetchSprite(){
                     spriteFetch->patternTable[1] = readPPUMemory8(patternAddr + 16);
                 }
             }else{
-                offY = (spriteFetch->attribute & 0x80) ? (8 - ((scanline + 1) - spriteY)) : (((scanline + 1) - spriteY));
+                offY = (spriteFetch->attribute & 0x80) ? (7 - ((scanline + 1) - spriteY)) : (((scanline + 1) - spriteY));
                 spriteTileAddr = (spritePatternTableAddress) + (spriteTileTemp) * 16;
                 uint16_t patternAddr = spriteTileAddr + offY;
-//                spritesNext[spriteFetchCurrent].patternTable[0] = readPPUMemory8(patternAddr);
-//                spritesNext[spriteFetchCurrent].patternTable[1] = readPPUMemory8(patternAddr + 8);
                 if(!horizFlip){
                     //magic bit flipping stuff I took from somewhere
                     spriteFetch->patternTable[0] =
@@ -330,6 +325,7 @@ void PPU::cycle(uint64_t runTo){
                 switch (scanCycle){
                     case 0: //0 idle
                         if(!isOddFrame && !showBackground){
+                            decrementSprites();
                             ppuInc(1);
                         }
                         numSpritesCurrent = numSpritesNext;
@@ -338,6 +334,7 @@ void PPU::cycle(uint64_t runTo){
                         spriteEvalN = 0;
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
+                        spriteZeroActive = false;
                         break;
                     case 1:  //1-64 tile fetches, OAM clear
                         if(showBackground || showSprites){
@@ -349,6 +346,8 @@ void PPU::cycle(uint64_t runTo){
                                 fetchTile();
                             drawDot();
                         }
+                        shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 2 ... 64:
@@ -362,6 +361,7 @@ void PPU::cycle(uint64_t runTo){
                             drawDot();
                         }
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 65 ... 255: //65-255 tile fetches, sprite eval
@@ -374,6 +374,7 @@ void PPU::cycle(uint64_t runTo){
                             drawDot();
                         }
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 256: //256 tile fetches, sprite eval, y increment
@@ -386,6 +387,7 @@ void PPU::cycle(uint64_t runTo){
                             drawDot();
                         }
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 257: //257 fetch next scanline's sprites, copy horizontal position to v
@@ -396,28 +398,33 @@ void PPU::cycle(uint64_t runTo){
                         if(showBackground)
                             fetchTile();
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 258 ... 319: //258-320 fetch next scanline's sprites
                         if(showSprites)
                             fetchSprite();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 320:
                         if(showSprites)
                             fetchSprite();
                         tileProgress = 8;
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 321: //321-327 first two tiles next scanline
                         if(showBackground)
                             fetchTile();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 322 ... 327:
                         if(showBackground)
                             fetchTile();
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 328 ... 336: //321-336 first two tiles next scanline, increment horizontal v
@@ -427,12 +434,14 @@ void PPU::cycle(uint64_t runTo){
                             incrementHoriz();
                         }
                         shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 337:
                         if(showBackground)
                             fetchTile();
-                        shift();
+//                        shift();
+                        decrementSprites();
                         ppuInc(1);
                         break;
                     case 338 ... 340: //337-340 useless tile fetches
@@ -536,13 +545,15 @@ void PPU::cycle(uint64_t runTo){
             if(scanline<240){
                 for(int i=0; i<numSpritesNext; i++){
                     sprites[i] = spritesNext[i];
-
+                    if(sprites[i].x == 0){
+                        sprites[i].active = 8;
+                    }
                 }
             }
             scanline++;
             scanCycle = 0;
         }
-        decrementSprites();
+
     }
 
 }
@@ -584,7 +595,6 @@ void PPU::drawDot(){
             continue;
 
         bool vertFlip = (sprite.attribute & 0x80);
-        bool horizFlip = (sprite.attribute & 0x40);
         bool behindBG = (sprite.attribute & 0x20);
 
         uint8_t patternDataSprite = ((sprite.patternTable[1] & 0x1) << 1) | (sprite.patternTable[0] & 0x1);
@@ -593,20 +603,18 @@ void PPU::drawDot(){
         spriteActive = sprite.active;
         spriteY = sprite.y;
         hadSprite = true;
-        if(patternDataBG == 0 && patternDataSprite == 0){
-            drawColor = &palette[readPPUMemory8(0x3f00)];
-        }else if(patternDataBG == 0){
+         if(patternDataBG == 0 && patternDataSprite != 0){
             drawColor = &palette[readPPUMemory8(0x3f10 + paletteIndexSprite)];
-            ppuStatus |= 0x40; //set sprite 0 hit flag
+            if(sprite.isSprite0)
+                ppuStatus |= 0x40; //set sprite 0 hit flag
             spriteDrawn = true;
-        }else if(patternDataSprite == 0){
-            drawColor = &palette[readPPUMemory8(0x3f00 + paletteIndexBG)];
-        }else if(behindBG){
-            drawColor = &palette[readPPUMemory8(0x3f00 + paletteIndexBG)];
-        }else{
+            break;
+        }else if(patternDataSprite != 0 && !behindBG){
             drawColor = &palette[readPPUMemory8(0x3f10 + paletteIndexSprite)];
-            ppuStatus |= 0x40; //set sprite 0 hit flag
+            if(sprite.isSprite0)
+                ppuStatus |= 0x40; //set sprite 0 hit flag
             spriteDrawn = true;
+            break;
         }
     }
 #ifdef DRAW_TILE_BOUNDS
