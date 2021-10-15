@@ -17,6 +17,7 @@ typedef struct{
     uint8_t patternTable[2];
     uint8_t attribute;
     uint8_t x;
+    uint8_t active;
 }sprite_t;
 
 typedef struct{
@@ -111,7 +112,7 @@ private:
     void fetchSprite();
     void incrementHoriz();
     void incrementY();
-    void drawScanline();
+    void decrementSprites();
     void drawDot();
     void shift();
 
