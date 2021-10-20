@@ -2,12 +2,11 @@
 #include <atomic>
 #include "screen.h"
 #include <thread>
-#include <iostream>
-#include <unistd.h>
 #include "NESSystem.h"
 
 //16.63 milliseconds per frame on NTSC
 //one cpu cycle every 558.73 ns
+
 
 
 std::atomic<bool> pause{false};
@@ -16,9 +15,9 @@ std::atomic<unsigned char> controller{0};
 std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
-    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
-//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\full_palette.nes)"};
-//NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\The Legend of Zelda (USA).nes)"};
+//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
+//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\mmc1_a12.nes)"};
+NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\The Legend of Zelda (USA).nes)"};
 //NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\nestest.nes)"};
 //    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\Pac-Man (USA) (Namco).nes)"};
     uint64_t count = 0;

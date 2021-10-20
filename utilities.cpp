@@ -75,16 +75,19 @@ bool isOverflowSubtract(int8_t a, int8_t b, int8_t result){
 }
 
 void DebugLogFile::parseLine(const std::string &line) {
+    if(line[0] == '[')
+        return;
+
     uint32_t cycles;
     uint16_t pc;
     uint8_t acc, xIndex, yIndex, status, sp;
     pc = std::stoi(line, nullptr, 16);
-    acc = std::stoi(line.c_str() + 50, nullptr, 16);
-    xIndex = std::stoi(line.c_str() + 55, nullptr, 16);
-    yIndex = std::stoi(line.c_str() + 60, nullptr, 16);
-    status = std::stoi(line.c_str() + 65, nullptr, 16);
-    sp = std::stoi(line.c_str() + 71, nullptr, 16);
-    cycles = std::stoi(line.c_str() + 90, nullptr, 10);
+    acc = std::stoi(line.c_str() + 51, nullptr, 16);
+    xIndex = std::stoi(line.c_str() + 56, nullptr, 16);
+    yIndex = std::stoi(line.c_str() + 61, nullptr, 16);
+    status = std::stoi(line.c_str() + 66, nullptr, 16);
+    sp = std::stoi(line.c_str() + 72, nullptr, 16);
+//    cycles = std::stoi(line.c_str() + 90, nullptr, 10);
     pcs.emplace_back(pc);
     accs.emplace_back(acc);
     xIndexes.emplace_back(xIndex);
@@ -105,7 +108,10 @@ DebugLogFile::DebugLogFile(const std::string &filePath) {
     }
 }
 
-
+void DebugLogFile::printLine(int num){
+    printf("- %04x A:%02x X:%02x Y:%02x P:%02x SP:%02x\n",
+           pcs[num], accs[num], xIndexes[num], yIndexes[num], statuses[num], sps[num]);
+}
 bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, uint8_t yIndex, uint8_t status, uint8_t sp) {
     return pcs[num] == pc &&
         accs[num] == acc &&

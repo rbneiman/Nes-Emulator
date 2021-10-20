@@ -28,18 +28,18 @@
 #define pageCross(arg1,arg2) (((arg1)&0xFF00) != ((arg2)&0xFF00))
 
 #define cpuInc(arg) cpuTime += 15 * arg
-
+#define DEBUG_CPU
 //#define DEBUG
 
 //uint32_t cpuTime;
 
 CPU6502::CPU6502():
-    debugLogFile(R"(C:\Users\Alec\Documents\Programming\c++\Nes-Emulator\nestest.log)"){
+    debugLogFile(R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\trace.txt)"){
 
     cpuTime = 0;
 
 //    this->status = 0x24u;
-    this->status = 0;
+    this->status = 4;
     acc = 0;
     xindex = 0;
     yindex = 0;
@@ -72,10 +72,13 @@ void CPU6502::cycle(uint64_t runTo) {
     while (cpuTime < runTo) {
         uint8_t opcode = memory->readMemory8(pc);
 #ifdef DEBUG_CPU
-//        bool debugCheck = debugLogFile.checkLine(debugNumCycles, pc, acc, xindex, yindex, status, sp);
+        bool debugCheck = debugLogFile.checkLine(debugNumCycles++, pc, acc, xindex, yindex, status, sp);
 //        bool timingCheck = debugLogFile.checkTiming(debugNumCycles++, cpuTime/15 + 7);
         this->printStatus();
-//        if(!debugCheck || !timingCheck) fflush(stdout);
+        if(!debugCheck) {
+            debugLogFile.printLine(debugNumCycles - 1);
+            fflush(stdout);
+        }
 #endif
         switch (opcode) {                          //TODO add undocumented opcodes
             case 0x00: //BRK implied/immediate

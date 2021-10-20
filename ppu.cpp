@@ -2,7 +2,6 @@
 #include "ppu.h"
 #include <cstdint>
 #include <iostream>
-#include <algorithm>
 #include "screen.h"
 
 #define ppuInc(arg) ppuTime += 5 * arg

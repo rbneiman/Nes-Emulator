@@ -249,6 +249,9 @@ void Mapper1::write8(uint16_t address, uint8_t arg) {
             address = (address-0x2000) % 0x1000;
             vram[mirror(address)] = arg;
             break;
+        case 0x6000 ... 0x7FFF:
+            prgRAM[address - 0x6000 + prgRAMBankOff] = arg;
+            break;
         case 0x8000 ... 0x9FFF: // control
             writeControl(arg);
             break;
