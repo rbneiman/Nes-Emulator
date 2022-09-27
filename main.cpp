@@ -1,8 +1,9 @@
 #include <SFML/Window.hpp>
 #include <atomic>
-#include "screen.h"
 #include <thread>
+#include "screen.h"
 #include "NESSystem.h"
+#include "ppu.h"
 
 //16.63 milliseconds per frame on NTSC
 //one cpu cycle every 558.73 ns
