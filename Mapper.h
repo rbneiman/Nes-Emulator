@@ -37,11 +37,10 @@ public:
 };
 
 class Mapper0 : public Mapper{
-private:
+protected:
     uint8_t vram[0x2000]{};
-    std::vector<char> prg;
-    std::vector<char> chr;
-
+    uint32_t prgStart;
+    uint32_t chrStart;
 public:
     explicit Mapper0(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;
@@ -49,7 +48,7 @@ public:
 };
 
 class Mapper1 : public Mapper{
-private:
+protected:
     uint8_t vram[0x2000]{};
     std::vector<char> prg;
     std::vector<char> prgRAM;
@@ -88,6 +87,18 @@ private:
 public:
 
     explicit Mapper1(const std::vector<char>& contents);
+    uint16_t read16(uint16_t address) override;
+    void write8(uint16_t address, uint8_t arg) override;
+};
+
+class Mapper66 : public Mapper0{
+private:
+    uint8_t bankSelect = 0;
+    uint32_t chrBankOff = 0;
+    uint32_t prgBankOff = 0;
+
+public:
+    explicit Mapper66(const std::vector<char> &contents);
     uint16_t read16(uint16_t address) override;
     void write8(uint16_t address, uint8_t arg) override;
 };

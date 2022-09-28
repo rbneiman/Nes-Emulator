@@ -3,6 +3,7 @@
 //
 
 #include "Mapper.h"
+#include "utilities.h"
 #include <iostream>
 
 #define inRange(num, low, high) (num >= low && num <= high)
@@ -43,18 +44,14 @@ void Mapper::printMemoryDebug(int start, int end){
 //MAPPER 0
 
 Mapper0::Mapper0(const std::vector<char> &contents): Mapper{contents} {
-    int index = 16;
-    prg = {contents.data() + index, contents.data() + index + prgSize};
-    index += prgSize;
-
-    chr = {contents.data() + index, contents.data() + index + chrSize};
-    index += chrSize;
+    prgStart = 16;
+    chrStart = 16 + prgSize;
 }
 
 uint16_t Mapper0::read16(uint16_t address) {
     switch(address){
         case 0x0000 ... 0x1FFF:
-            return *((uint16_t*) (chr.data() + address));
+            return *((uint16_t*) (contents.data() + chrStart + address));
         case 0x2000 ... 0x2FFF:
             address -= 0x2000;
             if(mirror_type == VERTICAL){
@@ -64,12 +61,12 @@ uint16_t Mapper0::read16(uint16_t address) {
             }
             return *((uint16_t*) (vram + address));
         case 0x8000 ... 0xBFFF:
-            return *((uint16_t*) (prg.data() + address - 0x8000));
+            return *((uint16_t*) (contents.data() + prgStart + address - 0x8000));
         case 0xC000 ... 0xFFFF:
-            if(prg.size() > 0x4000)
-                return *((uint16_t*) (prg.data() + address - 0x8000));
+            if(prgSize > 0x4000)
+                return *((uint16_t*) (contents.data() + prgStart + address - 0x8000));
             else
-                return *((uint16_t*) (prg.data() + address - 0xC000));
+                return *((uint16_t*) (contents.data() + prgStart + address - 0xC000));
         default:
             std::cerr << "Bad ROM address: " << std::hex << address << std::endl;
             return 0;
@@ -271,10 +268,40 @@ void Mapper1::write8(uint16_t address, uint8_t arg) {
 }
 
 
+Mapper66::Mapper66(const std::vector<char> &contents) : Mapper0(contents) {
+
+}
 
 
+uint16_t Mapper66::read16(uint16_t address) {
+    uint32_t casted = address;
+    switch (address) {
+        case 0x0000 ... 0x1FFF:
+            return *((uint16_t*) (contents.data() + (chrStart + chrBankOff + casted)));
+        case 0x8000 ... 0xFFFF:
+            return *((uint16_t*) (contents.data() + ((prgStart + prgBankOff + casted) - 0x8000)));
+        default:
+            return Mapper0::read16(address);
+    }
+}
 
+//8KB == 0x2000
+//32KB == 0x8000
 
+//  7  bit  0
+//  ---- ----
+//  xxPP xxCC
+//    ||   ||
+//    ||   ++- Select 8 KB CHR ROM bank for PPU $0000-$1FFF
+//    ++------ Select 32 KB PRG ROM bank for CPU $8000-$FFFF
+void Mapper66::write8(uint16_t address, uint8_t arg){
+    if(address > 0x8000){
+        chrBankOff = bitSlice(arg, 2, 0) * 0x2000;
+        prgBankOff = bitSlice(arg, 5, 4) * 0x8000;
+    }else{
+        Mapper0::write8(address, arg);
+    }
+}
 
 
 

@@ -28,13 +28,14 @@
 #define pageCross(arg1,arg2) (((arg1)&0xFF00) != ((arg2)&0xFF00))
 
 #define cpuInc(arg) cpuTime += 15 * arg
-#define DEBUG_CPU
+//#define DEBUG_CPU
 //#define DEBUG
 
 //uint32_t cpuTime;
 
-CPU6502::CPU6502():
-    debugLogFile(R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\trace.txt)"){
+CPU6502::CPU6502()
+{
+//    debugLogFile("../trace.txt"){
 
     cpuTime = 0;
 

@@ -59,5 +59,5 @@ int abs(int a);
 std::vector<char> loadFile(const std::string& filepath);
 bool isOverflowAdd(int8_t a, int8_t b, int8_t result);
 bool isOverflowSubtract(int8_t a, int8_t b, int8_t result);
-
+unsigned bitSlice(unsigned num, unsigned high, unsigned low);
 #endif //EMULATORTEST_UTILITIES_H

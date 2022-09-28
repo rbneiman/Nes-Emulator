@@ -9,12 +9,16 @@
 #define inRange(num, low, high) (num >= low && num <= high)
 
 void RomFile::setMapper() {
+    std::cout << "Rom has mapper type: " << this->mapperNum << std::endl;
     switch (mapperNum) {
         case 0:
             mapper = new Mapper0(contents);
             break;
         case 1:
             mapper = new Mapper1(contents);
+            break;
+        case 66:
+            mapper = new Mapper66(contents);
             break;
         default:
             std::cerr << "Unknown mapper type: " << this->mapperNum << std::endl;

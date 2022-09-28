@@ -20,7 +20,7 @@ private:
     uint8_t sp;
     uint16_t pc;
 
-    DebugLogFile debugLogFile;
+//    DebugLogFile debugLogFile;
     int debugNumCycles;
 
     uint64_t cpuTime;

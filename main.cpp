@@ -16,11 +16,7 @@ std::atomic<unsigned char> controller{0};
 std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
-//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Super Mario Bros. (Japan, USA).nes)"};
-//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\mmc1_a12.nes)"};
-NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\The Legend of Zelda (USA).nes)"};
-//NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\nestest.nes)"};
-//    NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Complete American Nintendo Entertainment System ROM set\Officially licensed games\Pac-Man (USA) (Namco).nes)"};
+    NESSystem system{"../roms/Super Mario Bros - Duck Hunt (U).nes"};
     uint64_t count = 0;
 
     sf::Clock clock;
@@ -44,7 +40,7 @@ NESSystem system{R"(C:\Users\alec\Documents\Programming\C++\Nes-Emulator\ROMS\Co
 //        }
 #endif
     }
-    system.cpu->printMemoryDebug(0x00, 0xff);
+//    system.cpu->printMemoryDebug(0x00, 0xff);
 }
 
 int main() {

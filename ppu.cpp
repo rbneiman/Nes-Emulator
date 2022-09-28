@@ -604,17 +604,17 @@ void PPU::drawDot(){
         hadSprite = true;
          if(patternDataBG == 0 && patternDataSprite != 0){
             drawColor = &palette[readPPUMemory8(0x3f10 + paletteIndexSprite)];
-            if(sprite.isSprite0)
-                ppuStatus |= 0x40; //set sprite 0 hit flag
             spriteDrawn = true;
             break;
-        }else if(patternDataSprite != 0 && !behindBG){
+        }else if((patternDataSprite != 0) && (!behindBG)){
             drawColor = &palette[readPPUMemory8(0x3f10 + paletteIndexSprite)];
-            if(sprite.isSprite0)
-                ppuStatus |= 0x40; //set sprite 0 hit flag
             spriteDrawn = true;
             break;
         }
+
+         if(patternDataBG !=0 && patternDataSprite !=0 && sprite.isSprite0){
+             ppuStatus |= 0x40; //set sprite 0 hit flag
+         }
     }
 #ifdef DRAW_TILE_BOUNDS
     if((!spriteDrawn) && (tileProgress == 0 || (scanline%8 == 0))){

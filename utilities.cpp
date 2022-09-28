@@ -74,6 +74,11 @@ bool isOverflowSubtract(int8_t a, int8_t b, int8_t result){
     return (case1 && (result>0)) || (case2 && (result<0));
 }
 
+unsigned bitSlice(unsigned num, unsigned high, unsigned low){
+    unsigned mask = (1 << (high+1)) - 1;
+    return (num & mask) >> low;
+}
+
 void DebugLogFile::parseLine(const std::string &line) {
     if(line[0] == '[')
         return;
@@ -82,11 +87,11 @@ void DebugLogFile::parseLine(const std::string &line) {
     uint16_t pc;
     uint8_t acc, xIndex, yIndex, status, sp;
     pc = std::stoi(line, nullptr, 16);
-    acc = std::stoi(line.c_str() + 51, nullptr, 16);
-    xIndex = std::stoi(line.c_str() + 56, nullptr, 16);
-    yIndex = std::stoi(line.c_str() + 61, nullptr, 16);
-    status = std::stoi(line.c_str() + 66, nullptr, 16);
-    sp = std::stoi(line.c_str() + 72, nullptr, 16);
+    acc = std::stoi(line.c_str() + 7, nullptr, 16);
+    xIndex = std::stoi(line.c_str() + 12, nullptr, 16);
+    yIndex = std::stoi(line.c_str() + 17, nullptr, 16);
+    status = std::stoi(line.c_str() + 22, nullptr, 16);
+    sp = std::stoi(line.c_str() + 28, nullptr, 16);
 //    cycles = std::stoi(line.c_str() + 90, nullptr, 10);
     pcs.emplace_back(pc);
     accs.emplace_back(acc);
@@ -124,3 +129,5 @@ bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, 
 bool DebugLogFile::checkTiming(int num, uint32_t cycles){
     return times[num] == cycles;
 }
+
+
