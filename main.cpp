@@ -1,6 +1,7 @@
 #include <SFML/Window.hpp>
 #include <atomic>
 #include <thread>
+#include <iostream>
 #include "screen.h"
 #include "NESSystem.h"
 #include "ppu.h"
@@ -13,16 +14,18 @@
 std::atomic<bool> pause{false};
 std::atomic<bool> updated{false};
 std::atomic<unsigned char> controller{0};
+std::atomic<unsigned char> controller2{0};
 std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
-    NESSystem system{"../roms/Legend of Zelda, The (U) (PRG 0).nes"};
+    NESSystem system{"../roms/Ghostbusters (U).nes"};
     uint64_t count = 0;
 
     sf::Clock clock;
     while(true){
         if(updated){
-            system.controller->updateState(controller);
+            system.controller->updateState(0, controller);
+            system.controller->updateState(1, controller2);
             updated = false;
         }
         if(pause){
@@ -62,11 +65,18 @@ int main() {
             // "close requested" event: we close the window
             if (event.type == sf::Event::Closed)
                 window->close();
-            if(event.type == sf::Event::MouseButtonPressed){
+            if(event.type == sf::Event::MouseButtonPressed) {  //for use with zapper
                 sf::Vector2i pos = sf::Mouse::getPosition(*window);
-                pixelSet(pos.x/pixels_size, pos.y/pixels_size, sf::Color::Blue);
-                printf("X:%d, Y:%d \n", pos.x/pixels_size, pos.y/pixels_size);
+                controller2 |= 0x18;
+                pixelSet(pos.x / pixels_size, pos.y / pixels_size, sf::Color::Blue);
+                printf("X:%d, Y:%d \n", pos.x / pixels_size, pos.y / pixels_size);
+                std::cout << std::to_string(controller2) << std::endl;
                 fflush(stdout);
+                updated = true;
+            }if(event.type == sf::Event::MouseButtonReleased){
+                controller2 &= ~0x18;
+                std::cout << std::to_string(controller2) << std::endl;
+                updated = true;
             }if(event.type == sf::Event::KeyPressed){
                 sf::Event::KeyEvent key = event.key;
                 switch(key.code){

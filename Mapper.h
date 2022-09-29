@@ -18,7 +18,7 @@ typedef enum{
 class Mapper{
 protected:
     const std::vector<char>& contents;
-
+    uint8_t vram[0x2000]{};
     int prgSize;
     int chrSize;
     mirrorType_t mirrorType;
@@ -39,7 +39,6 @@ public:
 
 class Mapper0 : public Mapper{
 protected:
-    uint8_t vram[0x2000]{};
     uint32_t prgStart;
     uint32_t chrStart;
 public:
@@ -51,7 +50,6 @@ public:
 class Mapper1 : public Mapper{
 protected:
     std::vector<uint8_t> chrRam{};
-    uint8_t vram[0x2000]{};
     std::vector<uint8_t> prgRam{};
     int prgRomStart;
     int chrRomStart;
@@ -69,6 +67,18 @@ public:
     void write8(uint16_t address, uint8_t arg) override;
 };
 
+//Mapper2 is only used by punch-out basically
+
+class Mapper3 : public Mapper0{
+protected:
+    uint32_t chrBankOff = 0;
+public:
+    explicit Mapper3(const std::vector<char>& contents);
+    uint16_t read16(uint16_t address) override;
+    void write8(uint16_t address, uint8_t arg) override;
+};
+
+
 class Mapper66 : public Mapper0{
 protected:
     uint32_t chrBankOff = 0;
@@ -79,5 +89,6 @@ public:
     uint16_t read16(uint16_t address) override;
     void write8(uint16_t address, uint8_t arg) override;
 };
+
 
 #endif //EMULATORTEST_MAPPER_H
