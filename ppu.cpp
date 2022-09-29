@@ -636,8 +636,15 @@ void PPU::drawDot(){
 }
 
 uint8_t PPU::readPPUMemory8(uint16_t address){
-    if(address>0x2EFFu && address<0x3F00u){ address = address % 0xF00u + 0x2000u;} //mirror
-    else if(address>=0x3F20u){ address = address % 0x20u + 0x3F00u;}
+    if(address > 0x3FFF){
+        address -= 0x4000;
+    }
+    if(address>0x2EFFu && address<0x3F00u){  //mirror
+        address = address % 0xF00u + 0x2000u;
+    }else if(address>=0x3F20u){
+        address = address % 0x20u + 0x3F00u;
+    }
+
     switch (address) {
         case 0x3f10:
             return paletteRAM[0];
@@ -658,6 +665,9 @@ uint8_t PPU::readPPUMemory8(uint16_t address){
 }
 
 void PPU::writePPUMemory8(uint16_t address, uint8_t arg){
+    if(address > 0x3FFF){
+        address -= 0x4000;
+    }
     if(address>0x2EFFu && address<0x3F00u){ address = address % 0xF00u + 0x2000u;} //mirror
     if(address>=0x3F20u){ address = address % 0x20u + 0x3F00u;}
     switch (address) {
@@ -736,7 +746,11 @@ uint8_t PPU::getOamData() const{
 }
 
 void PPU::setOamData(uint8_t oamData) {
-    PPU::oamData = oamData;
+    if((showSprites || showBackground) && (scanline<=239 || scanline==261)){
+        //TODO figure this OAM reading during render stuff
+        ++spriteEvalN; // ??? bumping ??? only the high 6 bits (i.e., it bumps the [n] value in PPU sprite evaluation)
+        return;
+    }
     ppuStatus = (ppuStatus & 0xE0) | (oamData & 0x1F);
     OAM[oamAddr++] = oamData;
 }
@@ -782,8 +796,8 @@ void PPU::setPpuData(uint8_t ppuData) {
 
 }
 
-void PPU::setOamDma(uint8_t addr, uint8_t data) {
-    OAM[addr] = data;
+void PPU::setOamDma(uint8_t data) {
+    OAM[oamAddr++] = data;
     ppuStatus = (ppuStatus & 0xE0) | (data & 0x1F);
 }
 

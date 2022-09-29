@@ -343,22 +343,32 @@ void Mapper66::write8(uint16_t address, uint8_t arg){
 }
 
 Mapper3::Mapper3(const std::vector<char>& contents) : Mapper0(contents){
+    prgRam.resize(0x8000);
 }
 
 uint16_t Mapper3::read16(uint16_t address){
-    if(address < 0x2000){
-        return *((uint16_t*) (contents.data() + (chrStart + chrBankOff + address)));
-    }else{
-        return Mapper0::read16(address);
+    switch (address) {
+        case 0x0000 ... 0x2000:
+            return *((uint16_t*) (contents.data() + (chrStart + chrBankOff + address)));
+        case 0x6000 ... 0x7FFF: //prg ram just in case
+            return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
+        default:
+            return Mapper0::read16(address);
     }
 }
 
 void Mapper3::write8(uint16_t address, uint8_t arg){
-    if(address > 0x8000){
-        chrBankOff = (arg & 0x3) * 0x2000;
-    }else{
-        Mapper0::write8(address, arg);
+    switch (address) {
+        case 0x6000 ... 0x7FFF: //prg ram
+            prgRam[address - 0x6000] = arg;
+            break;
+        case 0x8000 ... 0xFFFF:
+            chrBankOff = (arg & 0x3) * 0x2000;
+            break;
+        default:
+            Mapper0::write8(address, arg);
     }
+
 }
 
 

@@ -9,7 +9,7 @@ NESSystem::NESSystem(const std::string& romFile){
     cpu = new CPU6502();
     ppu = new PPU(cpu, rom);
     controller = new Controller();
-    memory = new CPUMemory(rom, ppu, controller);
+    memory = new CPUMemory(rom, ppu, controller, cpu);
     cpu->setMemory(memory);
     cpu->loadRom();
 }

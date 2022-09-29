@@ -72,6 +72,7 @@ public:
 class Mapper3 : public Mapper0{
 protected:
     uint32_t chrBankOff = 0;
+    std::vector<uint8_t> prgRam{};
 public:
     explicit Mapper3(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;

@@ -4,6 +4,8 @@
 #include "cpu.h"
 
 #pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnreachableCode"
+#pragma ide diagnostic ignored "UnreachableCode"
 #pragma ide diagnostic ignored "OCDFAInspection"
 #pragma clang diagnostic pop
 
@@ -48,6 +50,7 @@ CPU6502::CPU6502()
     sp = 0xFDu;
     pc = 0xFFFC;
     debugNumCycles = 0;
+    DMACycleNum = 514;
 }
 
 void CPU6502::inc(int units){
@@ -62,7 +65,7 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 void CPU6502::cycle(uint64_t runTo) {
-    static uint16_t pcPause = 0xCB81;
+    static uint16_t pcPause = 0xDFD7;
     static uint8_t lastAcc = 0;
     static uint8_t lastAccTemp = acc;
     int32_t checkV = 0;
@@ -75,6 +78,10 @@ void CPU6502::cycle(uint64_t runTo) {
     bool isOverflow;
 //    runTo += cpuTime;
     while (cpuTime < runTo) {
+        doDMACycles(runTo);
+        if(cpuTime >= runTo){
+            return;
+        }
         if(pc == pcPause){
             int j = 0;
         }
@@ -1774,4 +1781,22 @@ void CPU6502::doNMI(){
 
 void CPU6502::setMemory(CPUMemory *memory) {
     this->memory = memory;
+}
+
+void CPU6502::startOAMDMA(uint8_t DMAArgIn){
+    DMACycleNum = 0;
+    this->DMAArg = DMAArgIn;
+}
+
+void CPU6502::doDMACycles(uint64_t runTo){
+    while(DMACycleNum < 513 && cpuTime < runTo){
+        if(DMACycleNum == 0){
+            cpuInc(1);
+            ++DMACycleNum;
+        }else{
+            memory->writeDMA(DMAArg, DMACycleNum/2);
+            cpuInc(2);
+            DMACycleNum += 2;
+        }
+    }
 }

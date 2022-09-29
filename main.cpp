@@ -18,7 +18,7 @@ std::atomic<unsigned char> controller2{0};
 std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
-    NESSystem system{"../roms/Castlevania 2 - Simon's Quest (U).nes"};
+    NESSystem system{"../roms/Super Mario Bros (JU) (PRG 0).nes"};
     uint64_t count = 0;
 
     sf::Clock clock;

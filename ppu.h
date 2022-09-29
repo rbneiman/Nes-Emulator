@@ -62,7 +62,7 @@ private:
 
     uint8_t ppuCtrl{0};
     uint16_t baseNametableAddress{0x2000};
-    int vramAddressIncrement{0};
+    int vramAddressIncrement{1};
     uint16_t spritePatternTableAddress{0};
     uint16_t bgPatternTableAddress{0};
     bool longSprites{false};
@@ -81,11 +81,9 @@ private:
 
     uint8_t ppuStatus{0};
     uint8_t oamAddr{0};
-    uint8_t oamData{0};
 
     bool settingXScroll = true;
     bool loadBuffer = true;
-    uint8_t oamDMA{0};
 
     uint64_t ppuTime{0};
     uint32_t scanline{0};
@@ -96,18 +94,11 @@ private:
 
     bool spriteZeroActive{false};
     uint8_t spriteEvalN{0};
-    uint8_t spriteEvalM{0};
-    uint8_t spriteEvalProgress{0};
     sprite_t spritesNext[8]{};
     sprite_t sprites[8]{};
     uint8_t numSpritesCurrent{0};
     uint8_t numSpritesNext{0};
     uint8_t spriteFetchCurrent{0};
-
-    uint8_t attrTableTemp{0};
-    tile_t tiles[0x20]{};
-
-    uint16_t scanlineColors[256]{};
 
     void fetchTile();
     void evalSprite();
@@ -118,10 +109,9 @@ private:
     void drawDot();
     void shift();
 
-    uint8_t readPPUMemory8(uint16_t address);
     void writePPUMemory8(uint16_t address, uint8_t arg);
 public:
-
+    uint8_t readPPUMemory8(uint16_t address);
 
     explicit PPU(CPU6502* cpu, RomFile* rom);
 
@@ -147,12 +137,10 @@ public:
 
     void setPpuData(uint8_t ppuData);
 
-    void setOamDma(uint8_t addr, uint8_t data);
+    void setOamDma(uint8_t data);
 
 
     void printMemoryDebug(int start, int end);
-
-
 
 };
 

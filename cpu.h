@@ -24,10 +24,12 @@ private:
     int debugNumCycles;
 
     uint64_t cpuTime;
+    int DMACycleNum;
+    uint8_t DMAArg;
 public:
     CPU6502();
     void inc(int units);
-    void cycle(uint64_t numClocks);
+    void cycle(uint64_t runTo);
 
     void printMemoryDebug(int start, int end);
 
@@ -38,6 +40,10 @@ public:
     void loadRom();
 
     void setMemory(CPUMemory *memory);
+
+    void startOAMDMA(uint8_t DMAArgIn);
+
+    void doDMACycles(uint64_t runTo);
 };
 
 

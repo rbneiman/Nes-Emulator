@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "cpu.h"
 #include "memory.h"
 
 //#define cpuInc(arg) cpuTime += 15 * arg
@@ -19,10 +20,11 @@
 
 //void writeMemory8(uint16_t address, uint8_t arg);
 
-CPUMemory::CPUMemory(RomFile* rom, PPU* ppu, Controller* controller):
+CPUMemory::CPUMemory(RomFile* rom, PPU* ppu, Controller* controller, CPU6502* cpu):
     rom(rom),
     ppu(ppu),
-    controller(controller){
+    controller(controller),
+    cpu(cpu){
     for(uint16_t i = 0x4000; i<0x4014; i++){
         memory[i] = 0;
     }
@@ -54,11 +56,9 @@ uint8_t CPUMemory::readMemory8(uint16_t address){
     }
 }
 
-void CPUMemory::writeDMA(uint8_t arg){
+void CPUMemory::writeDMA(uint8_t arg, int index){
     uint16_t pageAddr = ((uint16_t) arg) << 8;
-    for(int i=0; i < 0x100; i++){
-        ppu->setOamDma(i,readMemory8(pageAddr + i));
-    }
+    ppu->setOamDma(readMemory8(pageAddr + index));
 }
 
 void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
@@ -92,8 +92,7 @@ void CPUMemory::writeMemory8(uint16_t address, uint8_t arg){
             ppu->setPpuData(arg);
             break;
         case 0x4014: //OAMDMA
-            writeDMA(arg);
-            //TODO increment 513 cycles
+            cpu->startOAMDMA(arg);
             break;
         case 0x4016:
             controller->write(arg);
