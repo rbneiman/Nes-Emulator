@@ -143,7 +143,7 @@ uint8_t getQuadrant(uint8_t nameAddr){
 //attributeTable -> array of blocks (4x4 tiles), each block one bite ->
 // four 2bit values, one for each 2x2 quadrant of block, represent palettes
 
-void PPU::fetchTile(uint8_t offX, uint16_t offY){
+void PPU::fetchTile(){
     uint16_t patternAddr;
     switch (tileProgress) {
         case 0:

@@ -284,8 +284,8 @@ void Mapper1::write8(uint16_t address, uint8_t arg) {
                 case 0: //0, 1: switch 32 KB at $8000, ignoring low bit of bank number;
                 case 1:
                     shiftRegister &= ~0x1; //ignore low bit
-                    prgBank0 = shiftRegister * 0x4000;
-                    prgBank1 = shiftRegister * 0x4000 + 0x4000;
+                    prgBank0 = shiftRegister * 0x8000;
+//                    prgBank1 = shiftRegister * 0x4000 + 0x4000;
                     break;
                 case 2: // 2: fix first bank at $8000 and switch 16 KB bank at $C000;
                     prgBank1 = shiftRegister * 0x4000;

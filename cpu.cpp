@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdio>
+#include <iostream>
 #include "cpu.h"
 
 #pragma clang diagnostic push
@@ -61,6 +62,7 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 void CPU6502::cycle(uint64_t runTo) {
+    static uint16_t pcPause = 0xCB81;
     static uint8_t lastAcc = 0;
     static uint8_t lastAccTemp = acc;
     int32_t checkV = 0;
@@ -73,10 +75,7 @@ void CPU6502::cycle(uint64_t runTo) {
     bool isOverflow;
 //    runTo += cpuTime;
     while (cpuTime < runTo) {
-        if(pc == 0x8052){
-            int j = 0;
-        }
-        if(pc == 0x8054){
+        if(pc == pcPause){
             int j = 0;
         }
         uint8_t opcode = memory->readMemory8(pc);
@@ -1286,8 +1285,8 @@ void CPU6502::cycle(uint64_t runTo) {
                 arg0 = memory->readMemory16(pc + 1);
                 a = memory->readMemory8(arg0 + yindex);
                 xindex = a;
-                setZ(yindex);
-                setN(yindex);
+                setZ(xindex);
+                setN(xindex);
                 if (pageCross(arg0, arg0 + yindex)) {
                     cpuInc(1);
 
@@ -1747,10 +1746,7 @@ void CPU6502::cycle(uint64_t runTo) {
                 pc += 3;
                 break;
             default:
-#ifdef DEBUG_CPU
-                printf("Unknown opcode!\n");
-
-#endif
+                std::cerr << "Unknown opcode: " << std::hex << opcode << std::endl;
                 break;
         }
     }
