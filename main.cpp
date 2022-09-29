@@ -16,7 +16,7 @@ std::atomic<unsigned char> controller{0};
 std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(){
 
-    NESSystem system{"../roms/Super Mario Bros - Duck Hunt (U).nes"};
+    NESSystem system{"../roms/Legend of Zelda, The (U) (PRG 0).nes"};
     uint64_t count = 0;
 
     sf::Clock clock;

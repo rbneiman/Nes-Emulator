@@ -61,6 +61,8 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 void CPU6502::cycle(uint64_t runTo) {
+    static uint8_t lastAcc = 0;
+    static uint8_t lastAccTemp = acc;
     int32_t checkV = 0;
     uint32_t checkVUnsigned = 0;
     uint16_t arg0 = 0;
@@ -71,7 +73,14 @@ void CPU6502::cycle(uint64_t runTo) {
     bool isOverflow;
 //    runTo += cpuTime;
     while (cpuTime < runTo) {
+        if(pc == 0x8052){
+            int j = 0;
+        }
+        if(pc == 0x8054){
+            int j = 0;
+        }
         uint8_t opcode = memory->readMemory8(pc);
+
 #ifdef DEBUG_CPU
         bool debugCheck = debugLogFile.checkLine(debugNumCycles++, pc, acc, xindex, yindex, status, sp);
 //        bool timingCheck = debugLogFile.checkTiming(debugNumCycles++, cpuTime/15 + 7);
@@ -1744,6 +1753,9 @@ void CPU6502::cycle(uint64_t runTo) {
 #endif
                 break;
         }
+    }
+    if(acc != lastAccTemp){
+        lastAcc = lastAccTemp;
     }
 }
 

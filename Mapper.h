@@ -6,11 +6,14 @@
 #define EMULATORTEST_MAPPER_H
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 typedef enum{
     HORIZONTAL = 0,
-    VERTICAL = 1
-}mirror_type_t;
+    VERTICAL = 1,
+    ONE_SCREEN_LOWER = 2,
+    ONE_SCREEN_UPPER = 3
+}mirrorType_t;
 
 class Mapper{
 protected:
@@ -18,8 +21,8 @@ protected:
 
     int prgSize;
     int chrSize;
-    mirror_type_t mirror_type;
-    bool chrRAM;
+    mirrorType_t mirrorType;
+    bool hasChrRam;
     bool has_persistent;
     bool has_trainer;
     bool ignore_mirror;
@@ -32,8 +35,6 @@ public:
     virtual uint16_t read16(uint16_t address) = 0;
 
     virtual void write8(uint16_t address, uint8_t arg) = 0;
-
-
 };
 
 class Mapper0 : public Mapper{
@@ -49,51 +50,27 @@ public:
 
 class Mapper1 : public Mapper{
 protected:
+    std::vector<uint8_t> chrRam{};
     uint8_t vram[0x2000]{};
-    std::vector<char> prg;
-    std::vector<char> prgRAM;
-    std::vector<char> chr;
-
-    //im not sure of the offsets here
-    int chrBank0Off{0x0};
-    int chrBank1Off{0x1000};
-
-    int prgBank0Off{0x0};
-    int prgBank1Off{0x4000};
-
-    int prgRAMBankOff{0x0};
-
-    uint8_t loadProgress{0};
-    uint8_t loadReg{0};
-    bool loadDone{false};
-
-    uint8_t control{0};
-    uint8_t mirroring{0};
-    uint8_t prgBankMode{3};
-    uint8_t chrBankMode{0};
-    uint8_t chrBank0{0};
-    uint8_t chrBank1{0};
-    uint8_t prgBank{0};
-
-    uint16_t mirror(uint16_t address) const;
-    void setControl(uint8_t arg);
-
-    uint8_t writeLoadReg(uint8_t arg);
-    void writeControl(uint8_t arg);
-    void writeChrBank0(uint8_t arg);
-    void writeChrBank1(uint8_t arg);
-    void writePrgBank(uint8_t arg);
-
+    std::vector<uint8_t> prgRam{};
+    int prgRomStart;
+    int chrRomStart;
+    int prgBank0{0};
+    int prgBank1{0};
+    int chrBank0{0};
+    int chrBank1{0};
+    int shiftProgress{0};
+    uint8_t shiftRegister{0};
+    uint8_t prgRomBankMode{0};
+    uint8_t chrRomBankMode{0};  //0: switch 8 KB at a time; 1: switch two separate 4 KB banks
 public:
-
     explicit Mapper1(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;
     void write8(uint16_t address, uint8_t arg) override;
 };
 
 class Mapper66 : public Mapper0{
-private:
-    uint8_t bankSelect = 0;
+protected:
     uint32_t chrBankOff = 0;
     uint32_t prgBankOff = 0;
 

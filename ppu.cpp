@@ -234,18 +234,21 @@ void PPU::fetchSprite(){
             }
 //            uint8_t spriteOffY = sprite.y - scanline;
             if(longSprites){
-                offY = (spritesNext[spriteFetchCurrent].attribute & 0x80) ? 16 : 32;
+                offY = (spriteFetch->attribute & 0x80) ? (15 - ((scanline + 1) - spriteY)) : (((scanline + 1) - spriteY));
                 spriteTileAddr = (spriteTileTemp & 1) * 0x1000 + ((spriteTileTemp & 0xFE)>>1) * 32;
-                uint16_t patternAddr = spriteTileAddr + ((scanline) - spriteY);
+                if(offY > 7){
+                    spriteTileAddr += 8;
+                }
+                uint16_t patternAddr = spriteTileAddr + offY;
                 if(!horizFlip){
                     //magic bit flipping stuff I took from somewhere
                     spriteFetch->patternTable[0] =
                             ((readPPUMemory8(patternAddr) * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32;
                     spriteFetch->patternTable[1] =
-                            ((readPPUMemory8(patternAddr + 16) * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32;
+                            ((readPPUMemory8(patternAddr + 8) * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32;
                 }else{
                     spriteFetch->patternTable[0] = readPPUMemory8(patternAddr);
-                    spriteFetch->patternTable[1] = readPPUMemory8(patternAddr + 16);
+                    spriteFetch->patternTable[1] = readPPUMemory8(patternAddr + 8);
                 }
             }else{
                 offY = (spriteFetch->attribute & 0x80) ? (7 - ((scanline + 1) - spriteY)) : (((scanline + 1) - spriteY));

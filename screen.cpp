@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include "screen.h"
 
 void renderThread();
@@ -33,6 +33,14 @@ void InitScreen(){
 }
 
 void pixelSet(int x, int y, sf::Color color){
+    if(x >= pixels_width || x<0){
+        std::cerr << "Bad pixel x-coordinate: " << x << std::endl;
+        return;
+    }
+    if(y >= pixels_height || y<0){
+        std::cerr << "Bad pixel y-coordinate: " << x << std::endl;
+        return;
+    }
     (*pixels)[y*pixels_width*4+x*4].color = color;
     (*pixels)[y*pixels_width*4+x*4+1].color = color;
     (*pixels)[y*pixels_width*4+x*4+2].color = color;
