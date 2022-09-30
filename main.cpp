@@ -16,9 +16,9 @@ std::atomic<bool> updated{false};
 std::atomic<unsigned char> controller{0};
 std::atomic<unsigned char> controller2{0};
 std::atomic<uint32_t> time_nanos{0};
-[[noreturn]] void cpuTask(){
+[[noreturn]] void cpuTask(char* fileName){
 
-    NESSystem system{"../roms/Super Mario Bros (JU) (PRG 0).nes"};
+    NESSystem system{fileName};
     uint64_t count = 0;
 
     sf::Clock clock;
@@ -36,24 +36,21 @@ std::atomic<uint32_t> time_nanos{0};
         system.cpu->cycle(count * 20);
         system.ppu->cycle(count * 20);
         ++count;
-#ifdef DEBUG_CPU
-//        if(count % 100 == 0 && count != 0){
-//            cpu.printMemoryDebug(0x00, 0xff);
-//            count = 0;
-//        }
-#endif
     }
-//    system.cpu->printMemoryDebug(0x00, 0xff);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     sf::err().rdbuf(nullptr);
+    if(argc < 2){
+        std::cerr << "Please specify the path to the rom to load.";
+        exit(1);
+    }
 
     InitScreen();
 
     pixelSet(1,1,sf::Color::Blue);
 
-    std::thread cpuThread(cpuTask);
+    std::thread cpuThread(cpuTask, argv[1]);
     cpuThread.detach();
     controller = 0;
     updated = true;
