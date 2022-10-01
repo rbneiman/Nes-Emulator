@@ -16,10 +16,10 @@ std::atomic<bool> updated{false};
 std::atomic<unsigned char> controller{0};
 std::atomic<unsigned char> controller2{0};
 std::atomic<uint32_t> time_nanos{0};
-[[noreturn]] void cpuTask(char* fileName){
+[[noreturn]] void cpuTask(const char* fileName){
 
     NESSystem system{fileName};
-    uint64_t count = 0;
+    uint64_t count = 4;
 
     sf::Clock clock;
     while(true){
@@ -33,9 +33,9 @@ std::atomic<uint32_t> time_nanos{0};
             continue;
         }
 
-        system.cpu->cycle(count * 20);
-        system.ppu->cycle(count * 20);
-        ++count;
+        system.cpu->cycle(count);
+        system.ppu->cycle(count);
+        count += 15;
     }
 }
 
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
 
     InitScreen();
 
-    pixelSet(1,1,sf::Color::Blue);
+//    pixelSet(1,1,sf::Color::Blue);
 
     std::thread cpuThread(cpuTask, argv[1]);
     cpuThread.detach();

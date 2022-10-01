@@ -22,6 +22,10 @@ Mapper::Mapper(const std::vector<char> &contents): contents(contents){
     has_trainer = flags6 & 0b100;
     ignore_mirror = flags6 & 0b1000;
     prgRamSize = contents[8];
+    prgRam.resize(0x8000);
+    if(hasChrRam){
+        chrRam.resize(0x8000);
+    }
 }
 
 void Mapper::printMemoryDebug(int start, int end){
@@ -51,7 +55,11 @@ Mapper0::Mapper0(const std::vector<char> &contents): Mapper{contents} {
 uint16_t Mapper0::read16(uint16_t address) {
     switch(address){
         case 0x0000 ... 0x1FFF:
-            return *((uint16_t*) (contents.data() + chrStart + address));
+            if(hasChrRam){
+                return *((uint16_t*) (chrRam.data() + address));
+            }else {
+                return *((uint16_t *) (contents.data() + chrStart + address));
+            }
         case 0x2000 ... 0x2FFF:
             address -= 0x2000;
             if(mirrorType == VERTICAL){
@@ -60,6 +68,8 @@ uint16_t Mapper0::read16(uint16_t address) {
                 address = ((address) / 0x800) * 0x800 + ((address) % 0x400);
             }
             return *((uint16_t*) (vram + address));
+        case 0x6000 ... 0x7FFF: //prg ram just in case
+            return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
         case 0x8000 ... 0xBFFF:
             return *((uint16_t*) (contents.data() + prgStart + address - 0x8000));
         case 0xC000 ... 0xFFFF:
@@ -75,17 +85,28 @@ uint16_t Mapper0::read16(uint16_t address) {
 
 
 void Mapper0::write8(uint16_t address, uint8_t arg) {
-    if(inRange(address, 0x2000, 0x2fff)){ //VRAM
-        address -= 0x2000;
-        if(mirrorType == VERTICAL){
-            address %= 0x800;
-        }else{
-            address = ((address) / 0x800) * 0x800 + ((address) % 0x400);
-        }
-        vram[address] = arg;
-
-    }else{
-        std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
+    switch (address) {
+        case 0x0000 ... 0x1FFF:
+            if (hasChrRam) {
+                chrRam[address] = arg;
+            } else {
+                std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
+                return;
+            }
+        case 0x2000 ... 0x2FFF:
+            address -= 0x2000;
+            if(mirrorType == VERTICAL){
+                address %= 0x800;
+            }else{
+                address = ((address) / 0x800) * 0x800 + ((address) % 0x400);
+            }
+            vram[address] = arg;
+            break;
+        case 0x6000 ... 0x7FFF: //prg ram
+            prgRam[address - 0x6000] = arg;
+            break;
+        default:
+            std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
     }
 }
 
@@ -96,9 +117,6 @@ Mapper1::Mapper1(const std::vector<char> &contents) : Mapper(contents){
     chrRomStart = 16 + prgSize;
     prgRam.resize(0x8000);
     prgBank1 = ((prgSize/0x4000)-1) * 0x4000;
-    if(hasChrRam){
-        chrRam.resize(0x8000);
-    }
 }
 
 
@@ -343,15 +361,13 @@ void Mapper66::write8(uint16_t address, uint8_t arg){
 }
 
 Mapper3::Mapper3(const std::vector<char>& contents) : Mapper0(contents){
-    prgRam.resize(0x8000);
+
 }
 
 uint16_t Mapper3::read16(uint16_t address){
     switch (address) {
         case 0x0000 ... 0x2000:
             return *((uint16_t*) (contents.data() + (chrStart + chrBankOff + address)));
-        case 0x6000 ... 0x7FFF: //prg ram just in case
-            return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
         default:
             return Mapper0::read16(address);
     }
@@ -359,9 +375,6 @@ uint16_t Mapper3::read16(uint16_t address){
 
 void Mapper3::write8(uint16_t address, uint8_t arg){
     switch (address) {
-        case 0x6000 ... 0x7FFF: //prg ram
-            prgRam[address - 0x6000] = arg;
-            break;
         case 0x8000 ... 0xFFFF:
             chrBankOff = (arg & 0x3) * 0x2000;
             break;

@@ -29,7 +29,7 @@ private:
 public:
     CPU6502();
     void inc(int units);
-    void cycle(uint64_t runTo);
+    uint64_t cycle(uint64_t runTo);
 
     void printMemoryDebug(int start, int end);
 

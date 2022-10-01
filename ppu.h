@@ -69,7 +69,6 @@ private:
     bool masterSlaveMode{false};
     bool generateNMI{false};
 
-    uint8_t ppuMask{};
     bool grayscale{false};
     bool showBackgroundLeft{false};
     bool showBackground{false};
@@ -115,7 +114,7 @@ public:
 
     explicit PPU(CPU6502* cpu, RomFile* rom);
 
-    void cycle(uint64_t numCycles);
+    uint64_t cycle(uint64_t numCycles);
 
     void setPpuCtrl(uint8_t ppuCtrl);
 

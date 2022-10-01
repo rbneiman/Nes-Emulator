@@ -4,7 +4,7 @@
 #include <iostream>
 #include "screen.h"
 
-#define ppuInc(arg) ppuTime += 5 * arg
+#define ppuInc(arg) (ppuTime += 5 * arg)
 
 #define CHECK_BIT(var,pos) (((var)>>(pos)) & 1)
 #define inRange(num, low, high) (num >= low && num <= high)
@@ -120,11 +120,11 @@ PPU::PPU(CPU6502* cpu, RomFile* rom):
     cpu(cpu), rom(rom){
 
     //PALETTE TEST
-    for(int i=0; i<0x4; i++){
-        for(int j=0; j<0x10; j++){
-            pixelSet(j,i,palette[i*0x10+j]);
-        }
-    }
+//    for(int i=0; i<0x4; i++){
+//        for(int j=0; j<0x10; j++){
+//            pixelSet(j,i,palette[i*0x10+j]);
+//        }
+//    }
 }
 
 
@@ -318,17 +318,24 @@ void PPU::decrementSprites(){
     }
 }
 
-void PPU::cycle(uint64_t runTo){
+uint64_t PPU::cycle(uint64_t runTo){
     uint16_t debug_addr;
+    static uint64_t frameStart = 0;
+
+
     //run through scanCycles one at a time
     while(ppuTime < runTo){
+        if(scanCycle == 0 && scanline==0){
+            std::cout << ppuTime - frameStart << std::endl;
+            frameStart = ppuTime;
+        }
         switch(scanline){
             case 0 ... 239: //0-239 visible lines
                 switch (scanCycle){
                     case 0: //0 idle
-                        if(!isOddFrame && !showBackground){
-                            decrementSprites();
-                            ppuInc(1);
+                        if(scanline == 0 && isOddFrame && showBackground){
+//                            decrementSprites();
+                            ppuInc(-1);
                         }
                         numSpritesCurrent = numSpritesNext;
                         numSpritesNext = 0;
@@ -337,6 +344,7 @@ void PPU::cycle(uint64_t runTo){
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
                         spriteZeroActive = false;
+                        ppuInc(1);
                         break;
                     case 1:  //1-64 tile fetches, OAM clear
                         if(showBackground || showSprites){
@@ -461,6 +469,7 @@ void PPU::cycle(uint64_t runTo){
                     if(generateNMI)
                         cpu->doNMI();
                     ppuStatus |= 0x80; //set VBlank flag
+//                    frameStart = ppuTime;
                 }
                 scanCycle++;
                 ppuInc(1);
@@ -468,7 +477,6 @@ void PPU::cycle(uint64_t runTo){
             case 261: //261 pre-render line
                 switch (scanCycle) {
                     case 0:
-                        ppuStatus &= 0x9F; //clear sprite 0 hit and sprite overflow flags
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
                         break;
@@ -479,6 +487,8 @@ void PPU::cycle(uint64_t runTo){
                         }
                         if(showBackground)
                             fetchTile();
+                        ppuStatus &= ~0xC0; //clear sprite 0 hit and sprite overflow flags
+//                        std::cout << ppuTime - frameStart << std::endl;
                         break;
                     case 2 ... 255:
                         if((scanCycle % 8 == 0) && (showBackground || showSprites)){
@@ -543,7 +553,7 @@ void PPU::cycle(uint64_t runTo){
                 break;
         }
 
-        if(scanCycle >= 341){
+        if(scanCycle > 340){
             if(scanline<240){
                 for(int i=0; i<numSpritesNext; i++){
                     sprites[i] = spritesNext[i];
@@ -557,7 +567,7 @@ void PPU::cycle(uint64_t runTo){
         }
 
     }
-
+    return ppuTime - runTo;
 }
 
 void PPU::shift() {
@@ -713,7 +723,6 @@ void PPU::setPpuCtrl(uint8_t ppuCtrl) {
 }
 
 void PPU::setPpuMask(uint8_t ppuMask) {
-    PPU::ppuMask = ppuMask;
 
     emphasizeBlue = (ppuMask&0b1000000) >> 7;
     emphasizeGreen = (ppuMask&0b1000000) >> 6;
@@ -742,6 +751,9 @@ void PPU::setOamAddr(uint8_t oamAddr) {
 }
 
 uint8_t PPU::getOamData() const{
+    if((showSprites || showBackground) && scanCycle > 0 && scanCycle < 65){
+        return 0xFF;
+    }
     return OAM[oamAddr];
 }
 

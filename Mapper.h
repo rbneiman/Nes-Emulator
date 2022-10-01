@@ -19,6 +19,8 @@ class Mapper{
 protected:
     const std::vector<char>& contents;
     uint8_t vram[0x2000]{};
+    std::vector<uint8_t> chrRam{};
+    std::vector<uint8_t> prgRam{};
     int prgSize;
     int chrSize;
     mirrorType_t mirrorType;
@@ -49,8 +51,6 @@ public:
 
 class Mapper1 : public Mapper{
 protected:
-    std::vector<uint8_t> chrRam{};
-    std::vector<uint8_t> prgRam{};
     int prgRomStart;
     int chrRomStart;
     int prgBank0{0};
@@ -72,7 +72,6 @@ public:
 class Mapper3 : public Mapper0{
 protected:
     uint32_t chrBankOff = 0;
-    std::vector<uint8_t> prgRam{};
 public:
     explicit Mapper3(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;
