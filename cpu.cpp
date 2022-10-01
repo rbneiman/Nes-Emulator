@@ -13,7 +13,7 @@
 #define PCH (pc&0xFF00)>>8
 
 #define zeropage(arg)       ((arg)%0x100)
-#define zpageInd(arg,index) (arg + index)%256
+#define zpageInd(arg,index) ((arg + index)%256)
 #define indIndir(arg) ( memory->readMemory8((arg + xindex)% 256) + memory->readMemory8((arg + xindex + 1)%256) )*256
 #define indirInd(arg) (memory->readMemory8(arg) + memory->readMemory8((arg + 1) % 256) * 256 + yindex)
 
@@ -30,7 +30,7 @@
 
 #define pageCross(arg1,arg2) (((arg1)&0xFF00) != ((arg2)&0xFF00))
 
-#define cpuInc(arg) cpuTime += 15 * arg
+#define cpuInc(arg) (cpuTime += 15 * arg)
 //#define DEBUG_CPU
 //#define DEBUG
 
@@ -64,8 +64,8 @@ void CPU6502::printMemoryDebug(int start, int end){
 
 
 
-void CPU6502::cycle(uint64_t runTo) {
-    static uint16_t pcPause = 0xDFD7;
+uint64_t CPU6502::cycle(uint64_t runTo) {
+    static uint16_t pcPause = 0xE302;
     static uint8_t lastAcc = 0;
     static uint8_t lastAccTemp = acc;
     int32_t checkV = 0;
@@ -80,7 +80,7 @@ void CPU6502::cycle(uint64_t runTo) {
     while (cpuTime < runTo) {
         doDMACycles(runTo);
         if(cpuTime >= runTo){
-            return;
+            break;
         }
         if(pc == pcPause){
             int j = 0;
@@ -1760,6 +1760,7 @@ void CPU6502::cycle(uint64_t runTo) {
     if(acc != lastAccTemp){
         lastAcc = lastAccTemp;
     }
+    return cpuTime - runTo;
 }
 
 void CPU6502::loadRom() {
