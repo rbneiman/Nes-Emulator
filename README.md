@@ -1,7 +1,9 @@
 # Emulator
 Simple work in progress NES emulator
 
-Doesn't have audio support yet, and the rom file is hardcoded in main.cpp.
+Pass the rom file to run as a command line argument.
+
+No audio support yet.
 
 Supported Mappers:
 
