@@ -189,20 +189,84 @@ void PPU::fetchTile(){
 
 
 void PPU::evalSprite(){
-    if(numSpritesNext > 7 || spriteEvalN >= 63 )
-        return;
 
-    secondaryOAM[numSpritesNext*4] = OAM[spriteEvalN * 4] + 1;
-    if(SPRITE_CHECK((scanline+1), OAM[spriteEvalN * 4] + 1,longSprites)){
-        if(spriteEvalN == 0){
-            spriteZeroActive = true;
-        }
-        secondaryOAM[numSpritesNext*4 + 1] = OAM[spriteEvalN * 4 + 1];
-        secondaryOAM[numSpritesNext*4 + 2] = OAM[spriteEvalN * 4 + 2];
-        secondaryOAM[numSpritesNext*4 + 3] = OAM[spriteEvalN * 4 + 3];
-        ++numSpritesNext;
+    if(scanCycle == 65){
+        spriteEvalN = 0;
+        spriteEvalM = 0;
+        oamEvalDone = false;
+        oamCopyBuf = 0xFF;
+        spriteInRange = false;
+        overflowCount = 0;
+        secondaryOamAddr = 0;
+    }else if(scanCycle == 256){
+        numSpritesNext = secondaryOamAddr/4;
     }
-    ++spriteEvalN;
+
+
+    if(scanCycle & 0x1){ //odd cycles are spent reading from OAM
+        oamCopyBuf = OAM[spriteEvalN + spriteEvalM];
+    }else{
+        if(oamEvalDone){
+            spriteEvalN += 4;
+        }else{
+            spriteInRange = spriteInRange || SPRITE_CHECK((scanline+1), oamCopyBuf + 1,longSprites);
+
+            if(secondaryOamAddr < 0x20){ //less than 8 sprites
+                secondaryOAM[secondaryOamAddr] = oamCopyBuf;
+                if(spriteInRange){
+                    spriteEvalM = (spriteEvalM+1) & 0x3;
+                    ++secondaryOamAddr;
+                    if(spriteEvalN == 0){
+                        spriteZeroActive = true;
+                    }
+
+                    if(spriteEvalM == 0){
+                        spriteInRange = false;
+                        spriteEvalN += 4;
+                        if(spriteEvalN == 0){
+                            //reached end of OAM, disable writes
+                            oamEvalDone = true;
+                        }
+                    }
+                }else{
+                    //sprite not in range, skip to next sprite
+                    spriteEvalN += 4;
+                    if(spriteEvalN == 0){
+                        //reached end of OAM, disable writes
+                        oamEvalDone = true;
+                    }
+                }
+            }else{ //overflow crap
+
+                if(spriteInRange){
+                    ppuStatus |= 0x20; //set sprite overflow flag
+                    spriteEvalM = (spriteEvalM+1) & 0x3;
+                    if(spriteEvalM == 0){
+                        spriteEvalN += 4;
+                    }
+
+                    //overflow bug
+                    if(overflowCount == 0){
+                        overflowCount = 3;
+                    }else if(overflowCount > 0){
+                        --overflowCount;
+                        if(overflowCount == 0){
+                            oamEvalDone = true;
+                            spriteEvalM = 0;
+                        }
+                    }
+                }else{
+                    //overflow bug
+                    spriteEvalN += 4;
+                    spriteEvalM = (spriteEvalM+1) & 0x3;
+                    if(spriteEvalN == 0){
+                        oamEvalDone = true;
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 
@@ -325,26 +389,25 @@ uint64_t PPU::cycle(uint64_t runTo){
 
     //run through scanCycles one at a time
     while(ppuTime < runTo){
-        if(scanCycle == 0 && scanline==0){
-            std::cout << ppuTime - frameStart << std::endl;
-            frameStart = ppuTime;
-        }
+//        if(scanCycle == 0 && scanline==0){
+//            std::cout << ppuTime - frameStart << std::endl;
+//            frameStart = ppuTime;
+//        }
+
         switch(scanline){
             case 0 ... 239: //0-239 visible lines
                 switch (scanCycle){
                     case 0: //0 idle
-                        if(scanline == 0 && isOddFrame && showBackground){
-//                            decrementSprites();
-                            ppuInc(-1);
-                        }
+//                        if(scanline == 0 && isOddFrame && showBackground){
+////                            decrementSprites();
+//                            ppuInc(-1);
+//                        }
                         numSpritesCurrent = numSpritesNext;
                         numSpritesNext = 0;
                         currentOAM = 0;
-                        spriteEvalN = 0;
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
                         spriteZeroActive = false;
-                        ppuInc(1);
                         break;
                     case 1:  //1-64 tile fetches, OAM clear
                         if(showBackground || showSprites){
@@ -358,7 +421,6 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 2 ... 64:
                         if(showBackground || showSprites){
@@ -372,7 +434,6 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 65 ... 255: //65-255 tile fetches, sprite eval
                         if(showBackground || showSprites){
@@ -385,7 +446,6 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 256: //256 tile fetches, sprite eval, y increment
                         if(showBackground || showSprites){
@@ -398,7 +458,6 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 257: //257 fetch next scanline's sprites, copy horizontal position to v
                         if(showBackground || showSprites)
@@ -409,33 +468,28 @@ uint64_t PPU::cycle(uint64_t runTo){
                             fetchTile();
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 258 ... 319: //258-320 fetch next scanline's sprites
                         if(showSprites)
                             fetchSprite();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 320:
                         if(showSprites)
                             fetchSprite();
                         tileProgress = 8;
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 321: //321-327 first two tiles next scanline
                         if(showBackground)
                             fetchTile();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 322 ... 327:
                         if(showBackground)
                             fetchTile();
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 328 ... 336: //321-336 first two tiles next scanline, increment horizontal v
                         if(showBackground)
@@ -445,40 +499,36 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 337:
                         if(showBackground)
                             fetchTile();
 //                        shift();
                         decrementSprites();
-                        ppuInc(1);
                         break;
                     case 338 ... 340: //337-340 useless tile fetches
-                        ppuInc(1);
                         break;
                 }
-                ++scanCycle;
                 break;
             case 240: //240 post-render line
-                scanCycle++;
-                ppuInc(1);
                 break;
             case 241 ... 260: //241-260 vBlank lines
-                if(scanline == 241 && scanCycle == 1){
-                    if(generateNMI)
-                        cpu->doNMI();
-                    ppuStatus |= 0x80; //set VBlank flag
+                if(scanline == 241 && scanCycle == 0){
+                    if(!preventVblank){
+                        if(generateNMI)
+                            cpu->doNMI();
+                        ppuStatus |= 0x80; //set VBlank flag
+                    }
+                    preventVblank = false;
 //                    frameStart = ppuTime;
                 }
-                scanCycle++;
-                ppuInc(1);
                 break;
             case 261: //261 pre-render line
                 switch (scanCycle) {
                     case 0:
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
+                        ppuStatus &= ~0xE0; //clear sprite 0 hit, sprite overflow, vblank
                         break;
                     case 1:
                         if((scanCycle % 8 == 0) && (showBackground || showSprites)){
@@ -487,7 +537,7 @@ uint64_t PPU::cycle(uint64_t runTo){
                         }
                         if(showBackground)
                             fetchTile();
-                        ppuStatus &= ~0xC0; //clear sprite 0 hit and sprite overflow flags
+
 //                        std::cout << ppuTime - frameStart << std::endl;
                         break;
                     case 2 ... 255:
@@ -538,20 +588,16 @@ uint64_t PPU::cycle(uint64_t runTo){
                             fetchTile();
                         shift();
                         break;
+                    case 339:
+                        if(isOddFrame && showBackground){
+                            scanCycle = 340;
+                        }
+                        break;
                 }
-
-                scanCycle +=1;
-
-                ppuInc(1);
-                break;
-            case 262:
-                scanline = 0;
-                isOddFrame = !isOddFrame;
-                sf::sleep(sf::milliseconds(17 - clock.getElapsedTime().asMilliseconds()));
-                clock.restart();
-//                std::cout << clock.restart().asMilliseconds() << std::endl;
                 break;
         }
+        ++scanCycle;
+        ppuInc(1);
 
         if(scanCycle > 340){
             if(scanline<240){
@@ -564,6 +610,13 @@ uint64_t PPU::cycle(uint64_t runTo){
             }
             scanline++;
             scanCycle = 0;
+        }
+
+        if(scanline >= 262){
+            scanline = 0;
+            isOddFrame = !isOddFrame;
+            sf::sleep(sf::milliseconds(17 - clock.getElapsedTime().asMilliseconds()));
+            clock.restart();
         }
 
     }
@@ -737,6 +790,9 @@ void PPU::setPpuMask(uint8_t ppuMask) {
 }
 
 uint8_t PPU::getPpuStatus(){
+    if(scanline == 241 && scanCycle == 0){ //super weird vblank suppression bug
+        preventVblank = true;
+    }
     uint8_t out = ppuStatus;
 
     ppuStatus &= 0x7F;

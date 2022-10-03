@@ -23,6 +23,7 @@ Mapper::Mapper(const std::vector<char> &contents): contents(contents){
     ignore_mirror = flags6 & 0b1000;
     prgRamSize = contents[8];
     prgRam.resize(0x8000);
+    hasPrgRam = false;
     if(hasChrRam){
         chrRam.resize(0x8000);
     }
@@ -50,6 +51,7 @@ void Mapper::printMemoryDebug(int start, int end){
 Mapper0::Mapper0(const std::vector<char> &contents): Mapper{contents} {
     prgStart = 16;
     chrStart = 16 + prgSize;
+    hasPrgRam = true;
 }
 
 uint16_t Mapper0::read16(uint16_t address) {
@@ -69,7 +71,12 @@ uint16_t Mapper0::read16(uint16_t address) {
             }
             return *((uint16_t*) (vram + address));
         case 0x6000 ... 0x7FFF: //prg ram just in case
-            return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
+            if(hasPrgRam){
+                return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
+            }else{
+                std::cerr << "Bad ROM address: " << std::hex << address << std::endl;
+                return 0;
+            }
         case 0x8000 ... 0xBFFF:
             return *((uint16_t*) (contents.data() + prgStart + address - 0x8000));
         case 0xC000 ... 0xFFFF:
@@ -93,6 +100,7 @@ void Mapper0::write8(uint16_t address, uint8_t arg) {
                 std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
                 return;
             }
+            break;
         case 0x2000 ... 0x2FFF:
             address -= 0x2000;
             if(mirrorType == VERTICAL){
@@ -103,7 +111,12 @@ void Mapper0::write8(uint16_t address, uint8_t arg) {
             vram[address] = arg;
             break;
         case 0x6000 ... 0x7FFF: //prg ram
-            prgRam[address - 0x6000] = arg;
+            if (hasPrgRam) {
+                prgRam[address - 0x6000] = arg;
+            } else {
+                std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
+                return;
+            }
             break;
         default:
             std::cerr << "Bad ROM write address: " << std::hex << address << std::endl;
@@ -138,6 +151,7 @@ uint16_t getMirrorAddress(uint16_t address, mirrorType_t mirrorType){
         case ONE_SCREEN_UPPER:
             return address = (address % 0x400) + 0x400; //no clue what this maps to
     }
+    return 0;
 }
 
 
@@ -384,7 +398,29 @@ void Mapper3::write8(uint16_t address, uint8_t arg){
 
 }
 
+Mapper7::Mapper7(const std::vector<char> &contents) : Mapper0(contents) {
+    hasPrgRam = false;
+    prgBankOff = 0;
+}
 
+uint16_t Mapper7::read16(uint16_t address) {
+    if(address > 0x8000){
+        return *((uint16_t*) (contents.data() + (prgStart + prgBankOff + address - 0x8000)));
+    }
+    return Mapper0::read16(address);
+}
 
-
-
+//Bank select ($8000-$FFFF)
+// 7  bit  0
+// ---- ----
+// xxxM xPPP
+// |  |||
+// |  +++- Select 32 KB PRG ROM bank for CPU $8000-$FFFF
+// +------ Select 1 KB VRAM page for all 4 nametables
+void Mapper7::write8(uint16_t address, uint8_t arg) {
+    if(address > 0x8000){
+        prgBankOff = bitSlice(arg, 2, 0) * 0x8000;
+    }else{
+        Mapper0::write8(address, arg);
+    }
+}

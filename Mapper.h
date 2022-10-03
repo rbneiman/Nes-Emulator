@@ -25,6 +25,7 @@ protected:
     int chrSize;
     mirrorType_t mirrorType;
     bool hasChrRam;
+    bool hasPrgRam;
     bool has_persistent;
     bool has_trainer;
     bool ignore_mirror;
@@ -74,6 +75,15 @@ protected:
     uint32_t chrBankOff = 0;
 public:
     explicit Mapper3(const std::vector<char>& contents);
+    uint16_t read16(uint16_t address) override;
+    void write8(uint16_t address, uint8_t arg) override;
+};
+
+class Mapper7 : public Mapper0{
+protected:
+    uint32_t prgBankOff = 0;
+public:
+    explicit Mapper7(const std::vector<char>& contents);
     uint16_t read16(uint16_t address) override;
     void write8(uint16_t address, uint8_t arg) override;
 };

@@ -19,7 +19,7 @@ std::atomic<uint32_t> time_nanos{0};
 [[noreturn]] void cpuTask(const char* fileName){
 
     NESSystem system{fileName};
-    uint64_t count = 4;
+    uint64_t count = 0;
 
     sf::Clock clock;
     while(true){
@@ -33,8 +33,8 @@ std::atomic<uint32_t> time_nanos{0};
             continue;
         }
 
-        system.cpu->cycle(count);
         system.ppu->cycle(count);
+        system.cpu->cycle(count);
         count += 15;
     }
 }

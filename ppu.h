@@ -69,6 +69,7 @@ private:
     bool masterSlaveMode{false};
     bool generateNMI{false};
 
+    bool preventVblank{false};
     bool grayscale{false};
     bool showBackgroundLeft{false};
     bool showBackground{false};
@@ -86,13 +87,19 @@ private:
 
     uint64_t ppuTime{0};
     uint32_t scanline{0};
-    uint32_t scanCycle{0};
+    uint32_t scanCycle{24};
 
     uint8_t secondaryOAM[64]{};
     uint16_t spriteTileTemp{0};
 
     bool spriteZeroActive{false};
+    uint8_t oamCopyBuf{0};
+    bool oamEvalDone{false};
+    bool spriteInRange{false};
+    uint8_t overflowCount{0};
     uint8_t spriteEvalN{0};
+    uint8_t spriteEvalM{0};
+    uint8_t secondaryOamAddr{};
     sprite_t spritesNext[8]{};
     sprite_t sprites[8]{};
     uint8_t numSpritesCurrent{0};

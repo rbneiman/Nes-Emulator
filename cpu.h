@@ -6,13 +6,14 @@
 #include "utilities.h"
 #include "memory.h"
 
-//#define DEBUG_CPU
+#define DEBUG_CPU
 class CPUMemory;
 
 class CPU6502{
 private:
     CPUMemory* memory;
 
+    //registers
     uint8_t acc;
     uint8_t xindex;
     uint8_t yindex;
@@ -20,12 +21,23 @@ private:
     uint8_t sp;
     uint16_t pc;
 
-//    DebugLogFile debugLogFile;
-    int debugNumCycles;
+    //temporary values used while executing instructions
+    uint8_t currentOpcode;
+    uint16_t instrProgress;
+    uint16_t arg0, arg1;
+    uint8_t a,b, rel;
+    int32_t checkV = 0;
+    uint32_t checkVUnsigned = 0;
+
+#ifdef DEBUG_CPU
+    DebugLogFile debugLogFile;
+#endif
 
     uint64_t cpuTime;
     int DMACycleNum;
     uint8_t DMAArg;
+
+    void execute();
 public:
     CPU6502();
     void inc(int units);

@@ -20,6 +20,9 @@ void RomFile::setMapper() {
         case 3:
             mapper = new Mapper3(contents);
             break;
+        case 7:
+            mapper = new Mapper7(contents);
+            break;
         case 66:
             mapper = new Mapper66(contents);
             break;

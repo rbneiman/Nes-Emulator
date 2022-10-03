@@ -83,7 +83,7 @@ void DebugLogFile::parseLine(const std::string &line) {
     if(line[0] == '[')
         return;
 
-    uint32_t cycles;
+    uint64_t cycles;
     uint16_t pc;
     uint8_t acc, xIndex, yIndex, status, sp;
     pc = std::stoi(line, nullptr, 16);
@@ -92,7 +92,7 @@ void DebugLogFile::parseLine(const std::string &line) {
     yIndex = std::stoi(line.c_str() + 17, nullptr, 16);
     status = std::stoi(line.c_str() + 22, nullptr, 16);
     sp = std::stoi(line.c_str() + 28, nullptr, 16);
-//    cycles = std::stoi(line.c_str() + 90, nullptr, 10);
+    cycles = std::stol(line.c_str() + 35, nullptr, 10);
     pcs.emplace_back(pc);
     accs.emplace_back(acc);
     xIndexes.emplace_back(xIndex);
@@ -102,28 +102,49 @@ void DebugLogFile::parseLine(const std::string &line) {
     times.emplace_back(cycles);
 }
 
-DebugLogFile::DebugLogFile(const std::string &filePath) {
-    std::ifstream inf(filePath);
+DebugLogFile::DebugLogFile(const std::string &filePath) : inf(filePath){
     if(!inf)
         throw std::runtime_error(filePath + ": " + std::strerror(errno));
-
-    std::string line;
-    while (std::getline(inf, line)){
-        this->parseLine(line);
-    }
 }
 
 void DebugLogFile::printLine(int num){
-    printf("- %04x A:%02x X:%02x Y:%02x P:%02x SP:%02x\n",
-           pcs[num], accs[num], xIndexes[num], yIndexes[num], statuses[num], sps[num]);
+    if(lineNum <= num){
+        for(int start = 0; start < 100 || lineNum<=num; ++start){
+            std::string line;
+            endOfFile = std::getline(inf, line).eof();
+            if(endOfFile){
+                break;
+            }
+            parseLine(line);
+            ++lineNum;
+        }
+    }
+
+    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%lld\n",
+           pcs[num], accs[num], xIndexes[num], yIndexes[num], statuses[num], sps[num], times[num]);
 }
-bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, uint8_t yIndex, uint8_t status, uint8_t sp) {
+bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, uint8_t yIndex, uint8_t status, uint8_t sp, uint64_t cycle) {
+    if(lineNum <= num){
+        for(int start = 0; start < 100 || lineNum<=num; ++start){
+            std::string line;
+            endOfFile = std::getline(inf, line).eof();
+            if(endOfFile){
+                break;
+            }
+            parseLine(line);
+            ++lineNum;
+        }
+        if(endOfFile){
+            return false;
+        }
+    }
     return pcs[num] == pc &&
         accs[num] == acc &&
         xIndexes[num] == xIndex &&
         yIndexes[num] == yIndex &&
         statuses[num] == status &&
-        sps[num] == sp;
+        sps[num] == sp &&
+        times[num] == cycle;
 }
 
 bool DebugLogFile::checkTiming(int num, uint32_t cycles){
