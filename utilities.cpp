@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 #include "utilities.h"
 
 
@@ -50,9 +52,9 @@ a<0 b<0:
 	c<0: no
  */
 bool isOverflowAdd(int8_t a, int8_t b, int8_t result){
-    bool bothPos = (a>0) && (b>0);
+    bool bothPos = (a>=0) && (b>=0);
     bool bothNeg = (a<0) && (b<0);
-    return (bothPos && (result<0)) || (bothNeg && (result>0));
+    return (bothPos && (result<0)) || (bothNeg && (result>=0));
 }
 /*
 a>0 b>0:
@@ -79,9 +81,9 @@ unsigned bitSlice(unsigned num, unsigned high, unsigned low){
     return (num & mask) >> low;
 }
 
-void DebugLogFile::parseLine(const std::string &line) {
+bool DebugLogFile::parseLine(const std::string &line) {
     if(line[0] == '[')
-        return;
+        return false;
 
     uint64_t cycles;
     uint16_t pc;
@@ -100,6 +102,7 @@ void DebugLogFile::parseLine(const std::string &line) {
     statuses.emplace_back(status);
     sps.emplace_back(sp);
     times.emplace_back(cycles);
+    return true;
 }
 
 DebugLogFile::DebugLogFile(const std::string &filePath) : inf(filePath){
@@ -107,37 +110,44 @@ DebugLogFile::DebugLogFile(const std::string &filePath) : inf(filePath){
         throw std::runtime_error(filePath + ": " + std::strerror(errno));
 }
 
-void DebugLogFile::printLine(int num){
+bool DebugLogFile::ensureLines(int num){
+    if(endOfFile){
+        return false;
+    }
     if(lineNum <= num){
-        for(int start = 0; start < 100 || lineNum<=num; ++start){
+        for(int start = 0; start < 1000 || lineNum<num; ++start){
             std::string line;
             endOfFile = std::getline(inf, line).eof();
             if(endOfFile){
-                break;
+                return lineNum > num;
             }
-            parseLine(line);
-            ++lineNum;
-        }
-    }
+            if(parseLine(line)){
+                ++lineNum;
+            }
 
-    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%lld\n",
-           pcs[num], accs[num], xIndexes[num], yIndexes[num], statuses[num], sps[num], times[num]);
-}
-bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, uint8_t yIndex, uint8_t status, uint8_t sp, uint64_t cycle) {
-    if(lineNum <= num){
-        for(int start = 0; start < 100 || lineNum<=num; ++start){
-            std::string line;
-            endOfFile = std::getline(inf, line).eof();
-            if(endOfFile){
-                break;
-            }
-            parseLine(line);
-            ++lineNum;
-        }
-        if(endOfFile){
-            return false;
         }
     }
+    return true;
+}
+
+std::string DebugLogFile::getLineStr(int num){
+    ensureLines(num);
+
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0') << std::setw(4)
+        << int(pcs[num])
+        << " A:" << std::setw(2) << int(accs[num])
+        << " X:" << std::setw(2) << int(xIndexes[num])
+        << " Y:" << std::setw(2) << int(yIndexes[num])
+        << " P:" << std::setw(2) << int(statuses[num])
+        << " SP:" << std::setw(2) << int(sps[num])
+        << " CYC:" << std::dec << std::setw(0) << std::to_string(times[num]);
+    return oss.str();
+}
+
+bool DebugLogFile::checkLine(int num, uint16_t pc, uint8_t acc, uint8_t xIndex, uint8_t yIndex, uint8_t status, uint8_t sp, uint64_t cycle) {
+    ensureLines(num);
+
     return pcs[num] == pc &&
         accs[num] == acc &&
         xIndexes[num] == xIndex &&

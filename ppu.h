@@ -79,6 +79,8 @@ private:
     bool emphasizeGreen{false};
     bool emphasizeBlue{false};
 
+    uint8_t ioBus{0};
+    uint32_t ioBusBitLastAccess[8]{0};
     uint8_t ppuStatus{0};
     uint8_t oamAddr{0};
 
@@ -88,6 +90,7 @@ private:
     uint64_t ppuTime{0};
     uint32_t scanline{0};
     uint32_t scanCycle{24};
+    uint32_t frame{0};
 
     uint8_t secondaryOAM[64]{};
     uint16_t spriteTileTemp{0};
@@ -115,6 +118,7 @@ private:
     void drawDot();
     void shift();
 
+    void setIoBus(uint8_t mask, uint8_t val);
     void writePPUMemory8(uint16_t address, uint8_t arg);
 public:
     uint8_t readPPUMemory8(uint16_t address);
@@ -131,7 +135,7 @@ public:
 
     void setOamAddr(uint8_t oamAddr);
 
-    uint8_t getOamData() const;
+    uint8_t getOamData();
 
     void setOamData(uint8_t oamData);
 

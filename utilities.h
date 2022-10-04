@@ -47,8 +47,8 @@ private:
     bool endOfFile = false;
 
 //    std::ifstream inf;
-
-    void parseLine(const std::string& line);
+    bool ensureLines(int num);
+    bool parseLine(const std::string& line);
 public:
     explicit DebugLogFile(const std::string& filePath);
 
@@ -56,7 +56,7 @@ public:
 
     bool checkTiming(int num, uint32_t cycles);
 
-    void printLine(int num);
+    std::string getLineStr(int num);
 };
 
 int checkBit(uint8_t a, uint8_t bit);

@@ -6,7 +6,7 @@
 #include "utilities.h"
 #include "memory.h"
 
-#define DEBUG_CPU
+//#define DEBUG_CPU
 class CPUMemory;
 
 class CPU6502{
@@ -45,7 +45,7 @@ public:
 
     void printMemoryDebug(int start, int end);
 
-    void printStatus() const;
+    std::string getStatusStr() const;
 
     void doNMI();
 

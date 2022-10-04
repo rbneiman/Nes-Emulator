@@ -74,7 +74,7 @@ uint16_t Mapper0::read16(uint16_t address) {
             if(hasPrgRam){
                 return *((uint16_t*) (prgRam.data() + (address - 0x6000)));
             }else{
-                std::cerr << "Bad ROM address: " << std::hex << address << std::endl;
+                std::cerr << "Bad ROM read address: " << std::hex << address << std::endl;
                 return 0;
             }
         case 0x8000 ... 0xBFFF:
@@ -85,7 +85,7 @@ uint16_t Mapper0::read16(uint16_t address) {
             else
                 return *((uint16_t*) (contents.data() + prgStart + address - 0xC000));
         default:
-            std::cerr << "Bad ROM address: " << std::hex << address << std::endl;
+            std::cerr << "Bad ROM read address: " << std::hex << address << std::endl;
             return 0;
     }
 }

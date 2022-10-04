@@ -1,6 +1,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 #include "cpu.h"
 
 #pragma clang diagnostic push
@@ -85,22 +87,25 @@ uint64_t CPU6502::cycle(uint64_t runTo) {
 }
 
 void CPU6502::execute(){
-    static uint16_t pcPause = 0xE442;
 
     bool check;
     switch (instrProgress) {
         case 0:
         case 1: //fetch opcode
 #ifdef DEBUG_CPU
+            static uint16_t pcPause = 0xE232;
             static int num = 0;
-            printStatus();
             check = debugLogFile.checkLine(num++, pc, acc, xindex, yindex, status, sp, cpuTime/15 + 8);
-            if(!check){ //TODO sprite overflow crap
-                std::cout << "Expected:" << std::endl;
-                debugLogFile.printLine(num-1);
+            if(!check){
+                std::ostringstream oss;
+                for(int i = num - 10; i<num-1; ++i){
+                    oss << debugLogFile.getLineStr(i) << '\n';
+                }
+                std::cout << oss.str() << getStatusStr()
+                    << "\nExpected:\n" << debugLogFile.getLineStr(num-1) << std::endl;
                 fflush(stdout);
             }
-            if(pc == pcPause && (this->cpuTime/15 + 8 == 655171)){
+            if(pc == pcPause && (this->cpuTime/15 + 8 == 52531158)){
                 int j = 0;
             }
 #endif
@@ -111,6 +116,9 @@ void CPU6502::execute(){
         case 2:
             switch(currentOpcode){
                 case 0x00: //BRK implied/immediate
+                    pc += 1;
+                    instrProgress = 3;
+                    break;
                 case 0x08: //PHP implied
                 case 0x28: //PLP implied
                 case 0x40: //RTI Implied/Immediate
@@ -217,7 +225,7 @@ void CPU6502::execute(){
                 case 0xD6: //DEC zeropage x
                 case 0xF5: //SBC zeropage x
                 case 0xF6: //INC zeropage x
-                    arg0 = memory->readMemory16(pc);
+                    arg0 = memory->readMemory8(pc);
                     pc+=1;
                     instrProgress = 3;
                     break;
@@ -268,7 +276,7 @@ void CPU6502::execute(){
                 case 0x10: //BPL relative
                     rel = memory->readMemory8(pc);
                     pc += 1;
-                    if (((int8_t) status) > 0){
+                    if (((int8_t) status) >= 0){
                         instrProgress = 3;
                     }else{
                         instrProgress = 1;
@@ -556,12 +564,11 @@ void CPU6502::execute(){
             switch(currentOpcode){
                 case 0x00: //BRK implied/immediate
                     PUSH(((pc & 0xFF00)>>8));
-                    setB(1);
                     instrProgress = 4;
                     break;
                 case 0x08: //PHP implied
                     arg1 = status;
-                    arg1 |= 0b110000;
+                    arg1 |= 0x30;
                     PUSH(arg1);
                     instrProgress = 1;
                     break;
@@ -792,19 +799,13 @@ void CPU6502::execute(){
                     instrProgress = 4;
                     break;
                 case 0x1D: //ORA absolute x
-                case 0x1E: //ASL absolute x
                 case 0x3D: //AND absolute x
-                case 0x3E: //ROL absolute x
                 case 0x5D: //EOR absolute x
-                case 0x5E: //LSR absolute x
                 case 0x7D: //ADC absolute x
-                case 0x7E: //ROR absolute x
                 case 0xBC: //LDY absolute x
                 case 0xBD: //LDA absolute x
                 case 0xDD: //CMP absolute x
-                case 0xDE: //DEC absolute x
                 case 0xFD: //SBC absolute x
-                case 0xFE: //INC absolute x
                     arg0 |= ((uint16_t)memory->readMemory8(pc))<<8;
                     pc+=1;
                     if (pageCross(arg0, arg0 + xindex)) {
@@ -812,6 +813,17 @@ void CPU6502::execute(){
                     }else{
                         instrProgress = 5;
                     }
+                    arg0 += xindex;
+                    break;
+                case 0x1E: //ASL absolute x
+                case 0x3E: //ROL absolute x
+                case 0x5E: //LSR absolute x
+                case 0x7E: //ROR absolute x
+                case 0xDE: //DEC absolute x
+                case 0xFE: //INC absolute x
+                    arg0 |= ((uint16_t)memory->readMemory8(pc))<<8;
+                    pc+=1;
+                    instrProgress = 4;
                     arg0 += xindex;
                     break;
                 case 0x9D: //STA absolute x
@@ -863,7 +875,7 @@ void CPU6502::execute(){
                     break;
                 case 0x40: //RTI Implied/Immediate
                     arg0 = POP();
-                    status = (status&0b00110000) | (arg0&0b11001111);
+                    status = (status&0x30) | (arg0&0xCF);
                     instrProgress = 5;
                     break;
                 case 0x60: //RTS implied/immediate
@@ -1062,7 +1074,7 @@ void CPU6502::execute(){
                     arg1 += yindex;
                     break;
                 case 0x91: //STA indirect y
-                    arg1 |= ((uint16_t)memory->readMemory8(arg0+1))<<8;
+                    arg1 |= ((uint16_t)memory->readMemory8(zeropage(arg0+1)))<<8;
                     arg1 += yindex;
                     instrProgress = 5;
                     break;
@@ -1214,6 +1226,7 @@ void CPU6502::execute(){
         case 5:
             switch(currentOpcode){
                 case 0x00: //BRK implied/immediate
+                    PUSH(status | 0x30);
                     instrProgress = 6;
                     break;
                 case 0x20: //JSR absolute
@@ -1519,8 +1532,8 @@ void CPU6502::execute(){
             switch(currentOpcode){
                 case 0x00: //BRK implied/immediate
                     pc = memory->readMemory16(0xFFFE);
-                    setB(1);
-                    instrProgress = 1;
+                    setI(1);
+                    instrProgress = 7;
                     break;
                 case 0x20: //JSR absolute
                     arg0 |= ((uint16_t)memory->readMemory8(pc))<<8;
@@ -1732,13 +1745,16 @@ void CPU6502::execute(){
             break;
         case 7:
             switch(currentOpcode){
+                case 0x00: //BRK implied/immediate
+                    instrProgress = 1;
+                    break;
                 case 0x1E: //ASL absolute x
                 case 0x3E: //ROL absolute x
                 case 0x5E: //LSR absolute x
                 case 0x7E: //ROR absolute x
                 case 0xDE: //DEC absolute x
                 case 0xFE: //INC absolute x
-                    memory->writeMemory8(arg0 + xindex, a);
+                    memory->writeMemory8(arg0, a);
                     instrProgress = 1;
                     break;
                 default:
@@ -1755,8 +1771,17 @@ void CPU6502::loadRom() {
 //    this->pc = 0xc000;
 }
 
-void CPU6502::printStatus() const{
-    printf("%04x A:%02x X:%02x Y:%02x P:%02x SP:%02x CYC:%lld\n", pc, acc, xindex, yindex, status, sp, cpuTime/15 + 8);
+std::string CPU6502::getStatusStr() const{
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0') << std::setw(4)
+        << int(pc) << std::setw(2)
+        << " A:" << std::setw(2) <<  int(acc)
+        << " X:" << std::setw(2) <<  int(xindex)
+        << " Y:" << std::setw(2) <<  int(yindex)
+        << " P:" << std::setw(2) <<  int(status)
+        << " SP:" << std::setw(2) << int(sp)
+        << " CYC:" << std::dec << std::setw(0) << std::to_string(cpuTime/15 + 8);
+    return oss.str();
 }
 
 void CPU6502::doNMI(){

@@ -511,6 +511,9 @@ uint64_t PPU::cycle(uint64_t runTo){
                 }
                 break;
             case 240: //240 post-render line
+                if(scanCycle == 0){
+                    ++frame;
+                }
                 break;
             case 241 ... 260: //241-260 vBlank lines
                 if(scanline == 241 && scanCycle == 0){
@@ -757,6 +760,36 @@ void PPU::writePPUMemory8(uint16_t address, uint8_t arg){
 
 }
 
+void PPU::setIoBus(uint8_t mask, uint8_t val){
+    if(mask == 0xFF){
+        ioBus = val;
+        for(int i=0; i<7; ++i){
+            ioBusBitLastAccess[i] = frame;
+        }
+    }else{
+        //set io bus bits, and decay unmodified ones if needed
+        uint8_t currBitMask = 0x1;
+        for(int i=0; i<8; ++i){
+            uint8_t currMaskBit = mask & currBitMask;
+            uint8_t currentValBit = val & currBitMask;
+
+            if(currMaskBit){
+                if(currentValBit){
+                    ioBus |= currBitMask;
+                }else{
+                    ioBus &= ~currBitMask;
+                }
+                ioBusBitLastAccess[i] = frame;
+            }else if(frame - ioBusBitLastAccess[i] > 30){
+                ioBus &= ~currBitMask;
+            }
+
+            currBitMask <<=1;
+        }
+    }
+
+}
+
 void PPU::setPpuCtrl(uint8_t ppuCtrl) {
     PPU::ppuCtrl = ppuCtrl;
 
@@ -771,8 +804,7 @@ void PPU::setPpuCtrl(uint8_t ppuCtrl) {
     int nameTableBits = (ppuCtrl&0b11);
     baseNametableAddress = 0x2000 + nameTableBits * 0x400;
 
-
-    ppuStatus = (ppuStatus & 0xE0) | (ppuCtrl & 0x1F);
+    setIoBus(0xFF, ppuCtrl);
 }
 
 void PPU::setPpuMask(uint8_t ppuMask) {
@@ -786,7 +818,7 @@ void PPU::setPpuMask(uint8_t ppuMask) {
     showBackgroundLeft = (ppuMask&0b10) >> 1;
     grayscale = (ppuMask&0b1);
 
-    ppuStatus = (ppuStatus & 0xE0) | (ppuMask & 0x1F);
+    setIoBus(0xFF, ppuMask);
 }
 
 uint8_t PPU::getPpuStatus(){
@@ -798,32 +830,36 @@ uint8_t PPU::getPpuStatus(){
     ppuStatus &= 0x7F;
     settingXScroll = true;
 
-    return out;
+    setIoBus(~0x1F, out);
+    return out | ioBus;
 }
 
 void PPU::setOamAddr(uint8_t oamAddr) {
+    setIoBus(0xFF, oamAddr);
     PPU::oamAddr = oamAddr;
-    ppuStatus = (ppuStatus & 0xE0) | (oamAddr & 0x1F);
 }
 
-uint8_t PPU::getOamData() const{
+uint8_t PPU::getOamData(){
+    uint8_t out = OAM[oamAddr];
     if((showSprites || showBackground) && scanCycle > 0 && scanCycle < 65){
-        return 0xFF;
+        out = 0xFF;
     }
-    return OAM[oamAddr];
+    setIoBus(0xFF, out);
+    return out;
 }
 
 void PPU::setOamData(uint8_t oamData) {
+    setIoBus(0xFF, oamData);
     if((showSprites || showBackground) && (scanline<=239 || scanline==261)){
         //TODO figure this OAM reading during render stuff
         ++spriteEvalN; // ??? bumping ??? only the high 6 bits (i.e., it bumps the [n] value in PPU sprite evaluation)
         return;
     }
-    ppuStatus = (ppuStatus & 0xE0) | (oamData & 0x1F);
     OAM[oamAddr++] = oamData;
 }
 
 void PPU::setPpuScroll(uint8_t ppuScroll) {
+    setIoBus(0xFF, ppuScroll);
     if(settingXScroll){
         tVramAddr = (tVramAddr & 0xFFE0) | ((ppuScroll & 0x00F8) >> 3);
         fineXScroll = (ppuScroll & 0x07);
@@ -831,10 +867,10 @@ void PPU::setPpuScroll(uint8_t ppuScroll) {
         tVramAddr = (tVramAddr & 0x0C1F) | ((ppuScroll & 0x0007)<<12) | ((ppuScroll & 0x00F8) << 2);
     }
     settingXScroll = !settingXScroll;
-    ppuStatus = (ppuStatus & 0xE0) | (ppuScroll & 0x1F);
 }
 
 void PPU::setPpuAddr(uint8_t ppuAddr) {
+    setIoBus(0xFF, ppuAddr);
     if(settingXScroll){
         tVramAddr = (tVramAddr & 0x00FF) | ((ppuAddr & 0x3F) << 8);
     }else{
@@ -843,7 +879,6 @@ void PPU::setPpuAddr(uint8_t ppuAddr) {
     }
     settingXScroll = !settingXScroll;
     loadBuffer = true;
-    ppuStatus = (ppuStatus & 0xE0) | (ppuAddr & 0x1F);
 }
 
 uint8_t PPU::getPpuData(){
@@ -854,19 +889,19 @@ uint8_t PPU::getPpuData(){
     loadBuffer = false;
     uint8_t out = readPPUMemory8(vramAddr);
     vramAddr += vramAddressIncrement;
+    setIoBus(0xFF, out);
     return out;
 }
 
 void PPU::setPpuData(uint8_t ppuData) {
+    setIoBus(0xFF, ppuData);
     writePPUMemory8(vramAddr, ppuData);
     vramAddr += vramAddressIncrement;
-    ppuStatus = (ppuStatus & 0xE0) | (ppuData & 0x1F);
-
 }
 
 void PPU::setOamDma(uint8_t data) {
+    setIoBus(0xFF, data);
     OAM[oamAddr++] = data;
-    ppuStatus = (ppuStatus & 0xE0) | (data & 0x1F);
 }
 
 void PPU::printMemoryDebug(int start, int end){
