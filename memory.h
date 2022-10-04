@@ -1,4 +1,3 @@
-
 #ifndef EMULATORTEST_MEMORY_H
 #define EMULATORTEST_MEMORY_H
 #include <cstdint>

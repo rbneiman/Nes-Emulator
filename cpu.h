@@ -1,17 +1,19 @@
-
-
 #ifndef EMULATORTEST_CPU_H
 #define EMULATORTEST_CPU_H
 
 #include "utilities.h"
 #include "memory.h"
 
-//#define DEBUG_CPU
+#define DEBUG_CPU
 class CPUMemory;
 
 class CPU6502{
 private:
     CPUMemory* memory;
+
+#ifdef DEBUG_CPU
+    DebugLogFile debugLogFile;
+#endif
 
     //registers
     uint8_t acc;
@@ -29,15 +31,18 @@ private:
     int32_t checkV = 0;
     uint32_t checkVUnsigned = 0;
 
-#ifdef DEBUG_CPU
-    DebugLogFile debugLogFile;
-#endif
-
     uint64_t cpuTime;
     int DMACycleNum;
+    int DMAWriteNum;
+    bool DMAWrite;
     uint8_t DMAArg;
+    uint64_t nmiSignalTime;
+    int nmiProgress = 0;
+    int nmiWaiting = 0;
 
+    void doNMI();
     void execute();
+    void doDMACycle();
 public:
     CPU6502();
     void inc(int units);
@@ -47,15 +52,15 @@ public:
 
     std::string getStatusStr() const;
 
-    void doNMI();
+    void signalNMI(uint64_t signalTime);
+
+    void clearNMI(uint64_t signalTime);
 
     void loadRom();
 
     void setMemory(CPUMemory *memory);
 
     void startOAMDMA(uint8_t DMAArgIn);
-
-    void doDMACycles(uint64_t runTo);
 };
 
 

@@ -1,7 +1,3 @@
-//
-// Created by alec on 8/26/2021.
-//
-
 #include "Input.h"
 #define CHECK_BIT(var,pos) (((var)>>(pos)) & 1)
 
@@ -50,7 +46,8 @@ uint8_t Controller::read(int controllerPort){
     }
 
     if(controllerType == STANDARD){
-        return CHECK_BIT(*readState, (*nextBit)--);
+        // the 0x40 is intentional, some games rely on this behavior
+        return 0x40 | CHECK_BIT(*readState, (*nextBit)--);
     }else {
         return *readState;
     }

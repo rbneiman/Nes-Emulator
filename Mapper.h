@@ -1,7 +1,3 @@
-//
-// Created by alec on 8/27/2021.
-//
-
 #ifndef EMULATORTEST_MAPPER_H
 #define EMULATORTEST_MAPPER_H
 #include <cstdint>

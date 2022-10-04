@@ -1,7 +1,3 @@
-//
-// Created by alec on 8/23/2021.
-//
-
 #include "NESSystem.h"
 
 NESSystem::NESSystem(const std::string& romFile){

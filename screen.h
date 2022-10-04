@@ -1,5 +1,3 @@
-
-
 #ifndef EMULATORTEST_SCREEN_H
 #define EMULATORTEST_SCREEN_H
 

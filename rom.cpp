@@ -1,7 +1,3 @@
-//
-// Created by Alec on 8/3/2021.
-//
-
 #include <iostream>
 #include <cstdint>
 #include "rom.h"

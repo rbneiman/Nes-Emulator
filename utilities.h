@@ -1,4 +1,3 @@
-
 #ifndef EMULATORTEST_UTILITIES_H
 #define EMULATORTEST_UTILITIES_H
 #include <utility>

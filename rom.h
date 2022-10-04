@@ -1,7 +1,3 @@
-//
-// Created by Alec on 8/3/2021.
-//
-
 #ifndef EMULATORTEST_ROM_H
 #define EMULATORTEST_ROM_H
 #include <string>

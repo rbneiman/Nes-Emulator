@@ -55,6 +55,7 @@ CPU6502::CPU6502()
     sp = 0xFDu;
     pc = 0xFFFC;
     DMACycleNum = 514;
+    DMAWriteNum = 256;
     instrProgress = 0;
 }
 
@@ -72,12 +73,13 @@ uint64_t CPU6502::cycle(uint64_t runTo) {
     bool isOverflow;
 //    runTo += cpuTime;
     while (cpuTime < runTo) {
-        doDMACycles(runTo);
-        if(cpuTime >= runTo){
-            break;
+        if(DMAWriteNum < 256){
+            doDMACycle();
+        }else if(nmiProgress){
+            doNMI();
+        }else{
+            execute();
         }
-
-        execute();
         cpuInc(1);
     }
     if(acc != lastAccTemp){
@@ -87,13 +89,16 @@ uint64_t CPU6502::cycle(uint64_t runTo) {
 }
 
 void CPU6502::execute(){
-
+    if(this->cpuTime/15 + 8 == 833830){
+        int j = 0;
+    }
     bool check;
     switch (instrProgress) {
         case 0:
         case 1: //fetch opcode
+//            std::cout << getStatusStr() << std::endl;
 #ifdef DEBUG_CPU
-            static uint16_t pcPause = 0xE232;
+            static uint16_t pcPause = 0x8057;
             static int num = 0;
             check = debugLogFile.checkLine(num++, pc, acc, xindex, yindex, status, sp, cpuTime/15 + 8);
             if(!check){
@@ -105,7 +110,7 @@ void CPU6502::execute(){
                     << "\nExpected:\n" << debugLogFile.getLineStr(num-1) << std::endl;
                 fflush(stdout);
             }
-            if(pc == pcPause && (this->cpuTime/15 + 8 == 52531158)){
+            if(pc == pcPause && (this->cpuTime/15 + 8 == 116732)){
                 int j = 0;
             }
 #endif
@@ -1764,6 +1769,12 @@ void CPU6502::execute(){
             }
             break;
     }
+
+    if(instrProgress == 1 && nmiWaiting == 1 && (status&~0x4)!=1){
+        nmiWaiting = 0;
+        nmiProgress = 1;
+    }
+
 }
 
 void CPU6502::loadRom() {
@@ -1784,12 +1795,47 @@ std::string CPU6502::getStatusStr() const{
     return oss.str();
 }
 
-void CPU6502::doNMI(){
+void CPU6502::signalNMI(uint64_t signalTime){
+    nmiWaiting = 1;
+    nmiSignalTime = signalTime;
+}
 
-    PUSH(((pc & 0xFF00)>>8));
-    PUSH((pc & 0x00FF));
-    PUSH(status);
-    this->pc = this->memory->readMemory16(0xFFFA);
+void CPU6502::clearNMI(uint64_t signalTime) {
+    nmiWaiting = 0;
+    nmiSignalTime = signalTime;
+}
+
+void CPU6502::doNMI(){
+    switch (nmiProgress) {
+        case 0:
+        case 1:
+            nmiProgress = 2;
+            break;
+        case 2:
+            nmiProgress = 3;
+            break;
+        case 3:
+            PUSH(((pc & 0xFF00)>>8));
+            nmiProgress = 4;
+            break;
+        case 4:
+            PUSH((pc & 0x00FF));
+            nmiProgress = 5;
+            break;
+        case 5:
+            PUSH(status | 0x20);
+            nmiProgress = 6;
+            break;
+        case 6:
+            pc = memory->readMemory8(0xFFFA);
+            setI(1);
+            nmiProgress = 7;
+            break;
+        case 7:
+            pc = ((uint16_t) memory->readMemory8(0xFFFB)<<8) | (pc&0x00FF);
+            nmiProgress = 0;
+            break;
+    }
 }
 
 void CPU6502::setMemory(CPUMemory *memory) {
@@ -1798,18 +1844,19 @@ void CPU6502::setMemory(CPUMemory *memory) {
 
 void CPU6502::startOAMDMA(uint8_t DMAArgIn){
     DMACycleNum = 0;
+    DMAWriteNum = 0;
     this->DMAArg = DMAArgIn;
 }
 
-void CPU6502::doDMACycles(uint64_t runTo){
-    while(DMACycleNum < 513 && cpuTime < runTo){
-        if(DMACycleNum == 0){
-            cpuInc(1);
-            ++DMACycleNum;
-        }else{
-            memory->writeDMA(DMAArg, DMACycleNum/2);
-            cpuInc(2);
-            DMACycleNum += 2;
-        }
+void CPU6502::doDMACycle(){
+    if(DMACycleNum == 0 || (DMACycleNum == 1 && ((cpuTime/15 + 7) & 0x1))) {
+        DMAWrite = false;
+    }else if(DMAWrite){
+        memory->writeDMA(DMAArg, DMAWriteNum);
+        ++DMAWriteNum;
+        DMAWrite = false;
+    }else{
+        DMAWrite = true;
     }
+    ++DMACycleNum;
 }

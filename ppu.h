@@ -1,5 +1,3 @@
-
-
 #ifndef EMULATORTEST_PPU_H
 #define EMULATORTEST_PPU_H
 #include <cstdint>

@@ -1,7 +1,3 @@
-//
-// Created by alec on 8/23/2021.
-//
-
 #ifndef EMULATORTEST_NESSYSTEM_H
 #define EMULATORTEST_NESSYSTEM_H
 #include "rom.h"

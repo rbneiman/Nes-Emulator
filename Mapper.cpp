@@ -1,7 +1,3 @@
-//
-// Created by alec on 8/27/2021.
-//
-
 #include "Mapper.h"
 #include "utilities.h"
 #include <iostream>

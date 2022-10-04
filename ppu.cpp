@@ -1,4 +1,3 @@
-
 #include "ppu.h"
 #include <cstdint>
 #include <iostream>
@@ -516,10 +515,10 @@ uint64_t PPU::cycle(uint64_t runTo){
                 }
                 break;
             case 241 ... 260: //241-260 vBlank lines
-                if(scanline == 241 && scanCycle == 0){
+                if(scanline == 241 && scanCycle == 2){
                     if(!preventVblank){
                         if(generateNMI)
-                            cpu->doNMI();
+                            cpu->signalNMI(ppuTime);
                         ppuStatus |= 0x80; //set VBlank flag
                     }
                     preventVblank = false;
@@ -531,6 +530,7 @@ uint64_t PPU::cycle(uint64_t runTo){
                     case 0:
                         spriteFetchCurrent = 0;
                         tileProgress = 8;
+                        cpu->clearNMI(ppuTime);
                         ppuStatus &= ~0xE0; //clear sprite 0 hit, sprite overflow, vblank
                         break;
                     case 1:
